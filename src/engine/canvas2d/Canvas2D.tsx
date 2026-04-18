@@ -1,11 +1,14 @@
 import { useRef, useCallback, useEffect, useState } from 'react';
-import { Stage, Layer, Rect, Group, Line, Text, Circle, Transformer } from 'react-konva';
+import { Stage, Layer, Rect, Group, Line, Text, Circle, Transformer, Arrow } from 'react-konva';
 import type Konva from 'konva';
 import { useSceneStore } from '@/store/sceneStore';
 import { useUIStore } from '@/store/uiStore';
 import { getAssetById } from '@/features/component-library/assets-data';
-import type { SceneComponent } from '@/shared/types';
+import type { SceneComponent, Connection } from '@/shared/types';
+import { CONNECTION_COLORS, type ConnectionType } from '@/shared/types/constants';
 import { getComponentRenderer } from './component-renderers';
+import { generateId } from '@/shared/utils/id';
+import { ConnectionTypePicker } from '@/features/connection-picker/ConnectionTypePicker';
 
 // Expose screenshot capability via a global ref
 export const canvas2dScreenshotRef: { current: (() => void) | null } = { current: null };
@@ -28,9 +31,11 @@ export default function Canvas2D() {
 
   const {
     scene, addComponent, updateComponent, selectComponents,
-    addToSelection, clearSelection, setZoom, setPan,
+    addToSelection, clearSelection, setZoom, setPan, addConnection,
   } = useSceneStore();
-  const { activeTool } = useUIStore();
+  const { activeTool, connectionSource, setConnectionSource, setActiveTool } = useUIStore();
+  const [connectTarget, setConnectTarget] = useState<{ id: string; screenX: number; screenY: number } | null>(null);
+  const [connectPreview, setConnectPreview] = useState<{ x: number; y: number } | null>(null);
 
   const { room, components, viewState } = scene;
   const { canvas2d, selectedIds } = viewState;
@@ -138,9 +143,15 @@ export default function Canvas2D() {
   const handleStageClick = useCallback((e: Konva.KonvaEventObject<MouseEvent>) => {
     // Click on empty area → deselect (only if not finishing a selection box)
     if (!isSelecting.current && (e.target === e.target.getStage() || e.target.name() === 'background' || e.target.name() === 'grid-line' || e.target.name() === 'wall')) {
-      clearSelection();
+      if (activeTool === 'connect') {
+        // Cancel connect mode on empty click
+        setConnectionSource(null);
+        setConnectPreview(null);
+      } else {
+        clearSelection();
+      }
     }
-  }, [clearSelection]);
+  }, [clearSelection, activeTool, setConnectionSource]);
 
   // ============================================
   // Box Selection (marquee select)
@@ -164,6 +175,17 @@ export default function Canvas2D() {
   }, [activeTool, scale, offsetX, offsetY]);
 
   const handleStageMouseMove = useCallback((e: Konva.KonvaEventObject<MouseEvent>) => {
+    // Connect tool preview
+    if (activeTool === 'connect' && connectionSource) {
+      const stage = stageRef.current;
+      if (!stage) return;
+      const pos = stage.getPointerPosition();
+      if (!pos) return;
+      const sceneX = pos.x / scale - offsetX;
+      const sceneY = pos.y / scale - offsetY;
+      setConnectPreview({ x: sceneX, y: sceneY });
+    }
+
     if (!isSelecting.current) return;
     const stage = stageRef.current;
     if (!stage) return;
@@ -174,7 +196,7 @@ export default function Canvas2D() {
     const sceneY = pos.y / scale - offsetY;
 
     setSelectionBox(prev => prev ? { ...prev, endX: sceneX, endY: sceneY } : null);
-  }, [scale, offsetX, offsetY]);
+  }, [scale, offsetX, offsetY, activeTool, connectionSource]);
 
   const handleStageMouseUp = useCallback(() => {
     if (!isSelecting.current || !selectionBox) {
@@ -359,7 +381,7 @@ export default function Canvas2D() {
             setPan(e.target.x(), e.target.y());
           }
         }}
-        style={{ cursor: activeTool === 'pan' ? 'grab' : 'default' }}
+        style={{ cursor: activeTool === 'pan' ? 'grab' : activeTool === 'connect' ? 'crosshair' : 'default' }}
       >
         {/* Background */}
         <Layer listening={false}>
@@ -513,7 +535,28 @@ export default function Canvas2D() {
                 key={comp.id}
                 component={comp}
                 isSelected={selectedIds.includes(comp.id)}
+                isConnectSource={activeTool === 'connect' && connectionSource === comp.id}
                 onSelect={(id, multi) => {
+                  if (activeTool === 'connect') {
+                    if (!connectionSource) {
+                      // First click: set source
+                      setConnectionSource(id);
+                    } else if (connectionSource !== id) {
+                      // Second click: open type picker
+                      const stage = stageRef.current;
+                      const container = containerRef.current;
+                      if (stage && container) {
+                        const rect = container.getBoundingClientRect();
+                        const pos = stage.getPointerPosition();
+                        setConnectTarget({
+                          id,
+                          screenX: (pos?.x || 0) + rect.left,
+                          screenY: (pos?.y || 0) + rect.top,
+                        });
+                      }
+                    }
+                    return;
+                  }
                   if (multi) {
                     addToSelection(id);
                   } else {
@@ -523,10 +566,9 @@ export default function Canvas2D() {
                 onDragMove={(id, x, y, w, h, e) => handleDragMove(id, x, y, w, h, e)}
                 onDragEnd={(id, x, y) => {
                   setAlignmentLines([]);
-                  // Simply use the snapped position set by handleDragMove
                   updateComponent(id, { position: { x, y } });
                 }}
-                snapToGrid={false} // snapping handled dynamically now
+                snapToGrid={false}
                 gridSize={canvas2d.gridSize}
               />
             ))}
@@ -563,6 +605,107 @@ export default function Canvas2D() {
             </Group>
           )}
 
+          {/* Connection Lines Layer */}
+          <Group x={offsetX} y={offsetY}>
+            {scene.connections.map(conn => {
+              const sourceComp = components.find(c => c.id === conn.sourceId);
+              const targetComp = components.find(c => c.id === conn.targetId);
+              if (!sourceComp || !targetComp) return null;
+
+              const sAsset = getAssetById(sourceComp.assetId);
+              const tAsset = getAssetById(targetComp.assetId);
+              if (!sAsset || !tAsset) return null;
+
+              const sx = sourceComp.position.x * MM_TO_PX + (sAsset.defaultSize.width * MM_TO_PX * sourceComp.scale.x) / 2;
+              const sy = sourceComp.position.y * MM_TO_PX + (sAsset.defaultSize.height * MM_TO_PX * sourceComp.scale.y) / 2;
+              const tx = targetComp.position.x * MM_TO_PX + (tAsset.defaultSize.width * MM_TO_PX * targetComp.scale.x) / 2;
+              const ty = targetComp.position.y * MM_TO_PX + (tAsset.defaultSize.height * MM_TO_PX * targetComp.scale.y) / 2;
+
+              const color = CONNECTION_COLORS[conn.type as ConnectionType] || '#6B7280';
+              // Quadratic bezier control point (offset for curve)
+              const mx = (sx + tx) / 2;
+              const my = (sy + ty) / 2;
+              const dx = tx - sx;
+              const dy = ty - sy;
+              const offset = Math.min(Math.sqrt(dx * dx + dy * dy) * 0.15, 40);
+              const cx = mx - dy * 0.2;
+              const cy = my + dx * 0.2;
+
+              return (
+                <Group key={conn.id}>
+                  {/* Connection curve */}
+                  <Line
+                    points={[sx, sy, cx, cy, tx, ty]}
+                    stroke={color}
+                    strokeWidth={2 / scale}
+                    tension={0.5}
+                    lineCap="round"
+                    opacity={0.7}
+                    listening={false}
+                  />
+                  {/* Animated dash overlay */}
+                  <Line
+                    points={[sx, sy, cx, cy, tx, ty]}
+                    stroke={color}
+                    strokeWidth={2 / scale}
+                    tension={0.5}
+                    dash={[6 / scale, 4 / scale]}
+                    lineCap="round"
+                    opacity={0.4}
+                    listening={false}
+                  />
+                  {/* Line endpoint dots */}
+                  <Circle x={sx} y={sy} radius={3 / scale} fill={color} listening={false} />
+                  <Circle x={tx} y={ty} radius={3 / scale} fill={color} listening={false} />
+                  {/* Connection label */}
+                  <Group x={mx} y={my - 8 / scale}>
+                    <Rect
+                      x={-20 / scale} y={-6 / scale}
+                      width={40 / scale} height={12 / scale}
+                      fill="rgba(255,255,255,0.9)"
+                      cornerRadius={3 / scale}
+                      listening={false}
+                    />
+                    <Text
+                      x={-18 / scale} y={-4 / scale}
+                      width={36 / scale}
+                      text={conn.label || conn.type}
+                      fontSize={8 / scale}
+                      fontFamily="Inter, sans-serif"
+                      fill={color}
+                      align="center"
+                      listening={false}
+                    />
+                  </Group>
+                </Group>
+              );
+            })}
+          </Group>
+
+          {/* Connect tool preview line */}
+          {activeTool === 'connect' && connectionSource && connectPreview && (() => {
+            const srcComp = components.find(c => c.id === connectionSource);
+            if (!srcComp) return null;
+            const srcAsset = getAssetById(srcComp.assetId);
+            if (!srcAsset) return null;
+            const sx = srcComp.position.x * MM_TO_PX + (srcAsset.defaultSize.width * MM_TO_PX * srcComp.scale.x) / 2;
+            const sy = srcComp.position.y * MM_TO_PX + (srcAsset.defaultSize.height * MM_TO_PX * srcComp.scale.y) / 2;
+            return (
+              <Group x={offsetX} y={offsetY}>
+                <Line
+                  points={[sx, sy, connectPreview.x, connectPreview.y]}
+                  stroke="#7C3AED"
+                  strokeWidth={2 / scale}
+                  dash={[8 / scale, 4 / scale]}
+                  opacity={0.6}
+                  listening={false}
+                />
+                <Circle x={sx} y={sy} radius={4 / scale} fill="#7C3AED" listening={false} />
+                <Circle x={connectPreview.x} y={connectPreview.y} radius={3 / scale} fill="#7C3AED" opacity={0.5} listening={false} />
+              </Group>
+            );
+          })()}
+
           {/* Transformer */}
           <Transformer
             ref={transformerRef}
@@ -581,6 +724,47 @@ export default function Canvas2D() {
           />
         </Layer>
       </Stage>
+
+      {/* Connection Type Picker Popup */}
+      {connectTarget && connectionSource && (
+        <ConnectionTypePicker
+          x={connectTarget.screenX}
+          y={connectTarget.screenY}
+          onSelect={(type) => {
+            addConnection({
+              id: generateId(),
+              sourceId: connectionSource,
+              targetId: connectTarget.id,
+              type,
+              label: type.toUpperCase(),
+              bandwidth: '',
+              protocol: '',
+              style: { color: '', dashArray: '', lineWidth: 2, animated: true },
+            });
+            setConnectTarget(null);
+            setConnectionSource(null);
+            setConnectPreview(null);
+          }}
+          onCancel={() => {
+            setConnectTarget(null);
+            setConnectionSource(null);
+            setConnectPreview(null);
+          }}
+        />
+      )}
+
+      {/* Connect mode status bar */}
+      {activeTool === 'connect' && (
+        <div style={{
+          position: 'absolute', bottom: 8, left: '50%', transform: 'translateX(-50%)',
+          padding: '6px 16px', borderRadius: 20,
+          background: 'rgba(124, 58, 237, 0.9)', color: 'white',
+          fontSize: 12, fontWeight: 500, pointerEvents: 'none',
+          boxShadow: '0 2px 8px rgba(124, 58, 237, 0.3)',
+        }}>
+          {connectionSource ? '🔌 点击目标设备完成连线' : '🔌 点击源设备开始连线'}
+        </div>
+      )}
     </div>
   );
 }
@@ -591,6 +775,7 @@ export default function Canvas2D() {
 interface ComponentNodeProps {
   component: SceneComponent;
   isSelected: boolean;
+  isConnectSource?: boolean;
   onSelect: (id: string, multi: boolean) => void;
   onDragMove: (id: string, x: number, y: number, w: number, h: number, e: Konva.KonvaEventObject<DragEvent>) => void;
   onDragEnd: (id: string, x: number, y: number) => void;
@@ -598,7 +783,7 @@ interface ComponentNodeProps {
   gridSize: number;
 }
 
-function ComponentNode({ component, isSelected, onSelect, onDragMove, onDragEnd, snapToGrid, gridSize }: ComponentNodeProps) {
+function ComponentNode({ component, isSelected, isConnectSource, onSelect, onDragMove, onDragEnd, snapToGrid, gridSize }: ComponentNodeProps) {
   const asset = getAssetById(component.assetId);
   if (!asset) return null;
 
@@ -714,6 +899,21 @@ function ComponentNode({ component, isSelected, onSelect, onDragMove, onDragEnd,
           shadowColor="#38BDF8"
           shadowBlur={8}
           shadowOpacity={0.4}
+        />
+      )}
+
+      {/* Connect source highlight */}
+      {isConnectSource && (
+        <Rect
+          x={-4} y={-4}
+          width={w + 8} height={h + 8}
+          stroke="#7C3AED"
+          strokeWidth={2.5}
+          cornerRadius={6}
+          listening={false}
+          shadowColor="#7C3AED"
+          shadowBlur={12}
+          shadowOpacity={0.6}
         />
       )}
     </Group>

@@ -477,6 +477,152 @@ export const builtinAssets: Asset[] = [
     defaultSize: { width: 90, height: 130, depth: 25 },
     isBuiltin: true,
     tags: ['门禁', '打卡', '安防'],
+  },
+
+  // ===================== 新增教育设备 =====================
+  {
+    id: 'asset-whiteboard-pen',
+    name: '电子白板笔',
+    category: 'display',
+    subcategory: '配件',
+    defaultProperties: { price: 300, brand: '希沃', model: 'SP30', interfaces: ['蓝牙', 'USB充电'], power: 0 },
+    icon2d: 'whiteboard-pen',
+    color: '#8B5CF6', // Violet 500
+    defaultSize: { width: 160, height: 25, depth: 15 },
+    isBuiltin: true,
+    tags: ['笔', '触控', '白板'],
+  },
+  {
+    id: 'asset-clicker',
+    name: '学生答题器',
+    category: 'computing',
+    subcategory: '交互设备',
+    defaultProperties: { price: 120, brand: '畅言', model: 'CY-100', interfaces: ['RF 2.4G'], power: 0 },
+    icon2d: 'clicker',
+    color: '#10B981', // Emerald 500
+    defaultSize: { width: 80, height: 130, depth: 18 },
+    isBuiltin: true,
+    tags: ['答题器', '互动', '学生'],
+  },
+  {
+    id: 'asset-tablet',
+    name: '学生平板',
+    category: 'computing',
+    subcategory: '终端',
+    defaultProperties: { price: 2800, brand: '华为', model: 'MatePad SE 10.4', interfaces: ['WiFi', 'USB-C', '蓝牙'], power: 10 },
+    icon2d: 'tablet',
+    color: '#6366F1', // Indigo 500
+    defaultSize: { width: 250, height: 170, depth: 8 },
+    isBuiltin: true,
+    tags: ['平板', '终端', '学习'],
+  },
+  {
+    id: 'asset-3d-printer',
+    name: '3D打印机',
+    category: 'lab',
+    subcategory: '创客设备',
+    defaultProperties: { price: 5000, brand: '创想三维', model: 'Ender-3 V3', interfaces: ['USB', 'SD卡', 'WiFi'], power: 350 },
+    icon2d: '3d-printer',
+    color: '#F97316', // Orange 500
+    defaultSize: { width: 450, height: 450, depth: 470 },
+    isBuiltin: true,
+    tags: ['3D打印', '创客', 'STEAM'],
+  },
+  {
+    id: 'asset-document-camera',
+    name: '高拍仪',
+    category: 'av',
+    subcategory: '采集',
+    defaultProperties: { price: 1500, brand: '良田', model: 'S1020AF', interfaces: ['USB', 'HDMI'], power: 8 },
+    icon2d: 'document-camera',
+    color: '#14B8A6', // Teal 500
+    defaultSize: { width: 280, height: 150, depth: 380 },
+    isBuiltin: true,
+    tags: ['高拍仪', '展台', '实物扫描'],
+  },
+  {
+    id: 'asset-led-panel',
+    name: 'LED护眼灯',
+    category: 'infrastructure',
+    subcategory: '照明',
+    defaultProperties: { price: 400, brand: '欧普', model: 'MT-LED36', interfaces: ['220V'], power: 36 },
+    icon2d: 'led-panel',
+    color: '#FBBF24', // Amber 400
+    defaultSize: { width: 1200, height: 300, depth: 60 },
+    isBuiltin: true,
+    tags: ['灯具', '照明', '护眼'],
+  },
+  {
+    id: 'asset-curtain-motor',
+    name: '电动窗帘',
+    category: 'infrastructure',
+    subcategory: '环境控制',
+    defaultProperties: { price: 1200, brand: '杜亚', model: 'DT52E', interfaces: ['RS485', 'RF', 'WiFi'], power: 40 },
+    icon2d: 'curtain',
+    color: '#A78BFA', // Violet 400
+    defaultSize: { width: 100, height: 2000, depth: 120 },
+    isBuiltin: true,
+    tags: ['窗帘', '遮光', '电动'],
+  },
+  {
+    id: 'asset-central-control',
+    name: '中控主机',
+    category: 'computing',
+    subcategory: '控制',
+    defaultProperties: { price: 6000, brand: '快思聪', model: 'MC4-R', interfaces: ['RS232', 'RS485', 'IR', 'RJ45', 'HDMI'], power: 25 },
+    icon2d: 'central-control',
+    color: '#1E293B', // Slate 800
+    defaultSize: { width: 430, height: 44, depth: 300 },
+    isBuiltin: true,
+    tags: ['中控', '控制', '集中管理'],
+  },
+  {
+    id: 'asset-ups',
+    name: 'UPS电源',
+    category: 'infrastructure',
+    subcategory: '电力',
+    defaultProperties: { price: 3500, brand: 'APC', model: 'BX1100CI', interfaces: ['220V输入', '220V输出x6'], power: 660 },
+    icon2d: 'ups',
+    color: '#EF4444', // Red 500
+    defaultSize: { width: 300, height: 500, depth: 200 },
+    isBuiltin: true,
+    tags: ['UPS', '不间断', '备用电源'],
+  },
+  {
+    id: 'asset-info-display',
+    name: '信息发布屏',
+    category: 'display',
+    subcategory: '公告',
+    defaultProperties: { price: 8000, brand: '海康威视', model: 'DS-D6043FL', interfaces: ['HDMI', 'RJ45', 'WiFi'], power: 120 },
+    icon2d: 'info-display',
+    color: '#0284C7', // Sky 600
+    defaultSize: { width: 1000, height: 560, depth: 55 },
+    isBuiltin: true,
+    tags: ['信息发布', '广告机', '公告'],
+  },
+  {
+    id: 'asset-class-sign',
+    name: '电子班牌',
+    category: 'display',
+    subcategory: '智能终端',
+    defaultProperties: { price: 4500, brand: '鸿合', model: 'HD-I2165E', interfaces: ['RJ45', 'WiFi', 'USB', 'IC卡'], power: 30 },
+    icon2d: 'class-sign',
+    color: '#2563EB', // Blue 600
+    defaultSize: { width: 520, height: 300, depth: 40 },
+    isBuiltin: true,
+    tags: ['班牌', '考勤', '走班'],
+  },
+  {
+    id: 'asset-air-purifier',
+    name: '新风净化器',
+    category: 'infrastructure',
+    subcategory: '环境控制',
+    defaultProperties: { price: 6000, brand: '远大', model: 'SC500', interfaces: ['220V', 'WiFi'], power: 180 },
+    icon2d: 'air-purifier',
+    color: '#06B6D4', // Cyan 500
+    defaultSize: { width: 500, height: 350, depth: 250 },
+    isBuiltin: true,
+    tags: ['新风', '空气净化', '环境'],
   }
 ];
 

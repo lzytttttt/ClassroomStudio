@@ -128,7 +128,16 @@ export default function EditorPage() {
       }
     }
 
+    // Tool shortcuts
+    if (!e.ctrlKey && !e.metaKey) {
+      if (e.key === 'v' || e.key === 'V') { useUIStore.getState().setActiveTool('select'); }
+      if (e.key === 'h' || e.key === 'H') { useUIStore.getState().setActiveTool('pan'); }
+      if (e.key === 'c' && !e.ctrlKey) { useUIStore.getState().setActiveTool('connect'); }
+    }
+
     if (e.key === 'Escape') {
+      useUIStore.getState().setConnectionSource(null);
+      useUIStore.getState().setActiveTool('select');
       clearSelection();
     }
   }, [scene.viewState.selectedIds, copySelected, pasteClipboard, selectAll, removeComponents, clearSelection, groupSelected, ungroupSelected]);

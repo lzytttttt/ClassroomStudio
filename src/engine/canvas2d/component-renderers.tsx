@@ -652,14 +652,229 @@ export function renderAccessControl(w: number, h: number, color: string) {
   );
 }
 
+// ==================== 新增教育设备渲染器 ====================
+
+/** 电子白板笔 */
+export function renderWhiteboardPen(w: number, h: number, color: string) {
+  return (
+    <Group>
+      <Rect x={0} y={h * 0.2} width={w} height={h * 0.6} fill="#E5E7EB" cornerRadius={h * 0.3} stroke="#9CA3AF" strokeWidth={0.8} />
+      {/* 笔尖 */}
+      <Rect x={0} y={h * 0.3} width={w * 0.12} height={h * 0.4} fill="#6B7280" cornerRadius={[h * 0.2, 0, 0, h * 0.2]} listening={false} />
+      {/* 按钮 */}
+      <Rect x={w * 0.35} y={h * 0.3} width={w * 0.12} height={h * 0.4} fill="#8B5CF6" cornerRadius={1} listening={false} />
+      <Rect x={w * 0.5} y={h * 0.3} width={w * 0.08} height={h * 0.4} fill="#A78BFA" cornerRadius={1} listening={false} />
+      {/* 握持区纹理 */}
+      <Rect x={w * 0.65} y={h * 0.25} width={w * 0.2} height={h * 0.5} fill="#D1D5DB" cornerRadius={1} listening={false} />
+    </Group>
+  );
+}
+
+/** 学生答题器 */
+export function renderClicker(w: number, h: number, color: string) {
+  return (
+    <Group>
+      <Rect x={0} y={0} width={w} height={h} fill="#F3F4F6" cornerRadius={[4, 4, w * 0.3, w * 0.3]} stroke="#D1D5DB" strokeWidth={1} />
+      {/* 按钮区 */}
+      {['#EF4444', '#3B82F6', '#F59E0B', '#10B981'].map((c, i) => (
+        <Rect key={i} x={w * (i % 2 === 0 ? 0.15 : 0.55)} y={h * (i < 2 ? 0.15 : 0.4)} width={w * 0.3} height={h * 0.2} fill={c} cornerRadius={2} opacity={0.8} listening={false} />
+      ))}
+      {/* 显示窗 */}
+      <Rect x={w * 0.2} y={h * 0.7} width={w * 0.6} height={h * 0.12} fill="#0F172A" cornerRadius={1} listening={false} />
+    </Group>
+  );
+}
+
+/** 学生平板 */
+export function renderTablet(w: number, h: number, color: string) {
+  return (
+    <Group>
+      <Rect x={0} y={0} width={w} height={h} fill="#111827" cornerRadius={4} stroke="#374151" strokeWidth={1} />
+      {/* 屏幕 */}
+      <Rect x={3} y={3} width={w - 6} height={h - 6} fill="#1E3A5F" cornerRadius={2} listening={false} />
+      {/* 反光 */}
+      <Rect x={w * 0.1} y={3} width={w * 0.25} height={h - 6} fill="rgba(255,255,255,0.05)" listening={false} />
+      {/* 前置摄像头 */}
+      <Circle x={w * 0.5} y={5} radius={1.5} fill="#374151" listening={false} />
+    </Group>
+  );
+}
+
+/** 3D打印机 */
+export function render3DPrinter(w: number, h: number, color: string) {
+  return (
+    <Group>
+      {/* 底座框架 */}
+      <Rect x={0} y={0} width={w} height={h} fill="#1F2937" cornerRadius={3} stroke="#374151" strokeWidth={1} />
+      {/* 打印平台 */}
+      <Rect x={w * 0.1} y={h * 0.1} width={w * 0.8} height={h * 0.8} fill="#374151" cornerRadius={2} listening={false} />
+      {/* 打印床 */}
+      <Rect x={w * 0.15} y={h * 0.15} width={w * 0.7} height={h * 0.7} fill="#4B5563" cornerRadius={1} listening={false} />
+      {/* 床面网格 */}
+      {[0.3, 0.5, 0.7].map(r => (
+        <Group key={r}>
+          <Line points={[w * 0.15, h * r, w * 0.85, h * r]} stroke="#6B7280" strokeWidth={0.3} listening={false} />
+          <Line points={[w * r, h * 0.15, w * r, h * 0.85]} stroke="#6B7280" strokeWidth={0.3} listening={false} />
+        </Group>
+      ))}
+      {/* 喷头 */}
+      <Circle x={w * 0.45} y={h * 0.4} radius={Math.min(w, h) * 0.04} fill="#F97316" shadowColor="#F97316" shadowBlur={3} listening={false} />
+      {/* X轴导轨 */}
+      <Line points={[w * 0.1, h * 0.4, w * 0.9, h * 0.4]} stroke="#F97316" strokeWidth={1} opacity={0.4} listening={false} />
+    </Group>
+  );
+}
+
+/** 高拍仪 */
+export function renderDocumentCamera(w: number, h: number, color: string) {
+  return (
+    <Group>
+      {/* 底座 */}
+      <Rect x={w * 0.1} y={h * 0.5} width={w * 0.8} height={h * 0.45} fill="#D1D5DB" cornerRadius={3} stroke="#9CA3AF" strokeWidth={1} />
+      {/* 支撑臂 */}
+      <Rect x={w * 0.45} y={h * 0.1} width={w * 0.1} height={h * 0.5} fill="#94A3B8" cornerRadius={1} listening={false} />
+      {/* 摄像头 */}
+      <Circle x={w * 0.5} y={h * 0.12} radius={Math.min(w, h) * 0.08} fill="#1F2937" stroke="#4B5563" strokeWidth={0.8} listening={false} />
+      <Circle x={w * 0.5} y={h * 0.12} radius={Math.min(w, h) * 0.04} fill="#14B8A6" listening={false} />
+      {/* 补光灯 */}
+      <Rect x={w * 0.3} y={h * 0.2} width={w * 0.4} height={h * 0.05} fill="#FBBF24" opacity={0.3} cornerRadius={1} listening={false} />
+    </Group>
+  );
+}
+
+/** LED护眼灯面板 */
+export function renderLEDPanel(w: number, h: number, color: string) {
+  return (
+    <Group>
+      <Rect x={0} y={0} width={w} height={h} fill="#FEFCE8" cornerRadius={2} stroke="#FDE047" strokeWidth={0.8} />
+      {/* 灯管组 */}
+      {Array.from({ length: 3 }, (_, i) => (
+        <Rect key={i} x={w * 0.05} y={h * (0.15 + i * 0.28)} width={w * 0.9} height={h * 0.2} fill="#FEF9C3" cornerRadius={h * 0.08} stroke="#FDE047" strokeWidth={0.3} listening={false} />
+      ))}
+      {/* 发光效果 */}
+      <Rect x={0} y={0} width={w} height={h} fill="rgba(253, 224, 71, 0.12)" cornerRadius={2} listening={false} />
+    </Group>
+  );
+}
+
+/** 电动窗帘 */
+export function renderCurtain(w: number, h: number, color: string) {
+  return (
+    <Group>
+      {/* 导轨 */}
+      <Rect x={0} y={0} width={w} height={h * 0.05} fill="#94A3B8" cornerRadius={1} listening={false} />
+      {/* 帘布褶皱 */}
+      {Array.from({ length: Math.max(4, Math.floor(h / 15)) }, (_, i) => (
+        <Group key={i}>
+          <Rect x={0} y={h * 0.05 + i * (h * 0.95 / Math.max(4, Math.floor(h / 15)))} width={w} height={h * 0.95 / Math.max(4, Math.floor(h / 15))}
+            fill={i % 2 === 0 ? '#E9D5FF' : '#DDD6FE'} listening={false} />
+        </Group>
+      ))}
+      {/* 外框 */}
+      <Rect x={0} y={0} width={w} height={h} fill="transparent" stroke="#A78BFA" strokeWidth={0.8} cornerRadius={1} />
+    </Group>
+  );
+}
+
+/** 中控主机 */
+export function renderCentralControl(w: number, h: number, color: string) {
+  return (
+    <Group>
+      <Rect x={0} y={0} width={w} height={h} fill="#0F172A" cornerRadius={2} stroke="#334155" strokeWidth={1} />
+      {/* 前面板 */}
+      <Rect x={w * 0.05} y={h * 0.15} width={w * 0.6} height={h * 0.7} fill="#1E293B" cornerRadius={1} listening={false} />
+      {/* 接口指示灯 */}
+      {Array.from({ length: 6 }, (_, i) => (
+        <Circle key={i} x={w * (0.1 + i * 0.09)} y={h * 0.5} radius={Math.max(0.8, h * 0.06)}
+          fill={i < 2 ? '#22C55E' : i < 4 ? '#3B82F6' : '#F59E0B'} listening={false} />
+      ))}
+      {/* RS232/485 端口 */}
+      {Array.from({ length: 4 }, (_, i) => (
+        <Rect key={`port-${i}`} x={w * (0.7 + i * 0.065)} y={h * 0.3} width={w * 0.04} height={h * 0.4}
+          fill="#475569" cornerRadius={0.5} listening={false} />
+      ))}
+    </Group>
+  );
+}
+
+/** UPS不间断电源 */
+export function renderUPSPower(w: number, h: number, color: string) {
+  return (
+    <Group>
+      <Rect x={0} y={0} width={w} height={h} fill="#0F172A" cornerRadius={3} stroke="#1E293B" strokeWidth={1} />
+      {/* LCD屏 */}
+      <Rect x={w * 0.15} y={h * 0.08} width={w * 0.7} height={h * 0.25} fill="#022C22" cornerRadius={1} listening={false} />
+      {/* 电池图标 */}
+      <Rect x={w * 0.3} y={h * 0.4} width={w * 0.4} height={h * 0.15} fill="transparent" stroke="#22C55E" strokeWidth={0.8} cornerRadius={1} listening={false} />
+      <Rect x={w * 0.32} y={h * 0.42} width={w * 0.3} height={h * 0.11} fill="#22C55E" opacity={0.6} cornerRadius={0.5} listening={false} />
+      {/* 插口区 */}
+      {Array.from({ length: 3 }, (_, i) => (
+        <Rect key={i} x={w * (0.15 + i * 0.28)} y={h * 0.65} width={w * 0.2} height={h * 0.12}
+          fill="#1E293B" cornerRadius={1} stroke="#374151" strokeWidth={0.5} listening={false} />
+      ))}
+      {/* 状态灯 */}
+      <Circle x={w * 0.25} y={h * 0.88} radius={Math.max(1, Math.min(w, h) * 0.03)} fill="#22C55E" listening={false} />
+      <Circle x={w * 0.5} y={h * 0.88} radius={Math.max(1, Math.min(w, h) * 0.03)} fill="#F59E0B" listening={false} />
+      <Circle x={w * 0.75} y={h * 0.88} radius={Math.max(1, Math.min(w, h) * 0.03)} fill="#EF4444" opacity={0.3} listening={false} />
+    </Group>
+  );
+}
+
+/** 信息发布屏 */
+export function renderInfoDisplay(w: number, h: number, color: string) {
+  return (
+    <Group>
+      <Rect x={0} y={0} width={w} height={h} fill="#111827" cornerRadius={2} stroke="#374151" strokeWidth={1} />
+      {/* 屏幕 */}
+      <Rect x={3} y={3} width={w - 6} height={h - 8} fill="#0C4A6E" cornerRadius={1} listening={false} />
+      {/* 内容模拟 */}
+      <Rect x={w * 0.1} y={h * 0.15} width={w * 0.5} height={h * 0.12} fill="rgba(255,255,255,0.15)" cornerRadius={1} listening={false} />
+      <Rect x={w * 0.1} y={h * 0.35} width={w * 0.8} height={h * 0.05} fill="rgba(255,255,255,0.08)" listening={false} />
+      <Rect x={w * 0.1} y={h * 0.45} width={w * 0.6} height={h * 0.05} fill="rgba(255,255,255,0.08)" listening={false} />
+      {/* 底边logo区 */}
+      <Rect x={0} y={h - 5} width={w} height={5} fill="#0284C7" cornerRadius={[0, 0, 2, 2]} opacity={0.7} listening={false} />
+    </Group>
+  );
+}
+
+/** 电子班牌 (新版) */
+export function renderClassSign(w: number, h: number, color: string) {
+  return (
+    <Group>
+      <Rect x={0} y={0} width={w} height={h} fill="#0F172A" cornerRadius={4} stroke="#2563EB" strokeWidth={1.2} />
+      <Rect x={3} y={3} width={w - 6} height={h * 0.65} fill="#1E3A5F" cornerRadius={2} listening={false} />
+      {/* 标题区 */}
+      <Rect x={w * 0.1} y={h * 0.08} width={w * 0.6} height={h * 0.1} fill="rgba(59,130,246,0.3)" cornerRadius={2} listening={false} />
+      {/* 刷卡感应区 */}
+      <Rect x={w * 0.25} y={h * 0.72} width={w * 0.5} height={h * 0.22} fill="#1E293B" cornerRadius={3} stroke="#3B82F6" strokeWidth={0.5} listening={false} />
+      <Circle x={w * 0.5} y={h * 0.83} radius={Math.min(w, h) * 0.06} fill="#3B82F6" opacity={0.4} listening={false} />
+    </Group>
+  );
+}
+
+/** 新风净化器 */
+export function renderAirPurifier(w: number, h: number, color: string) {
+  return (
+    <Group>
+      <Rect x={0} y={0} width={w} height={h} fill="#F0FDFA" cornerRadius={4} stroke="#06B6D4" strokeWidth={1} />
+      {/* 进风栅格 */}
+      {Array.from({ length: 5 }, (_, i) => (
+        <Line key={i} points={[w * 0.1, h * (0.1 + i * 0.08), w * 0.9, h * (0.1 + i * 0.08)]}
+          stroke="#99F6E4" strokeWidth={1} listening={false} />
+      ))}
+      {/* 风扇轮廓 */}
+      <Circle x={w * 0.5} y={h * 0.65} radius={Math.min(w, h) * 0.18} fill="#ECFDF5" stroke="#06B6D4" strokeWidth={0.8} listening={false} />
+      <Circle x={w * 0.5} y={h * 0.65} radius={Math.min(w, h) * 0.06} fill="#06B6D4" opacity={0.5} listening={false} />
+      {/* HEPA 标识 */}
+      <Rect x={w * 0.3} y={h * 0.88} width={w * 0.4} height={h * 0.08} fill="#06B6D4" cornerRadius={2} opacity={0.2} listening={false} />
+    </Group>
+  );
+}
+
 // ==================== 渲染器注册表 ====================
 
 type RendererFn = (w: number, h: number, color: string) => React.ReactNode;
 
-/**
- * 通过 asset 的 icon2d 字段查找对应渲染器。
- * 如果没有匹配，返回 null（将使用默认矩形渲染）。
- */
 const RENDERER_MAP: Record<string, RendererFn> = {
   'desk-student': renderDeskStudent,
   'chair-student': renderChairStudent,
@@ -699,6 +914,19 @@ const RENDERER_MAP: Record<string, RendererFn> = {
   'light': renderSmartLight,
   'cabinet-rack': renderNetworkCabinet,
   'access-control': renderAccessControl,
+  // New devices
+  'whiteboard-pen': renderWhiteboardPen,
+  'clicker': renderClicker,
+  'tablet': renderTablet,
+  '3d-printer': render3DPrinter,
+  'document-camera': renderDocumentCamera,
+  'led-panel': renderLEDPanel,
+  'curtain-motor': renderCurtain,
+  'central-control': renderCentralControl,
+  'ups-power': renderUPSPower,
+  'info-display': renderInfoDisplay,
+  'class-sign': renderClassSign,
+  'air-purifier': renderAirPurifier,
 };
 
 export function getComponentRenderer(icon2d: string): RendererFn | null {

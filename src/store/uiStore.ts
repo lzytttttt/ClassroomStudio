@@ -9,7 +9,10 @@ interface UIState {
   showStatusBar: boolean;
 
   // Tool mode
-  activeTool: 'select' | 'pan' | 'zoom';
+  activeTool: 'select' | 'pan' | 'zoom' | 'connect';
+
+  // Connection wiring state
+  connectionSource: string | null;
 
   // Modal state
   activeModal: string | null;
@@ -24,7 +27,8 @@ interface UIState {
   toggleLeftSidebar: () => void;
   toggleRightSidebar: () => void;
   setDraggingAsset: (assetId: string | null) => void;
-  setActiveTool: (tool: 'select' | 'pan' | 'zoom') => void;
+  setActiveTool: (tool: 'select' | 'pan' | 'zoom' | 'connect') => void;
+  setConnectionSource: (id: string | null) => void;
   setActiveModal: (modal: string | null) => void;
   setHighlightedComponent: (id: string | null) => void;
   addToast: (toast: Omit<Toast, 'id'>) => void;
@@ -48,6 +52,7 @@ export const useUIStore = create<UIState>()((set) => ({
   showRulers: false,
   showStatusBar: true,
   activeTool: 'select',
+  connectionSource: null,
   activeModal: null,
   highlightedComponentId: null,
   toasts: [],
@@ -58,7 +63,8 @@ export const useUIStore = create<UIState>()((set) => ({
     isDraggingAsset: assetId !== null,
     draggingAssetId: assetId,
   }),
-  setActiveTool: (tool) => set({ activeTool: tool }),
+  setActiveTool: (tool) => set({ activeTool: tool, connectionSource: null }),
+  setConnectionSource: (id) => set({ connectionSource: id }),
   setActiveModal: (modal) => set({ activeModal: modal }),
   setHighlightedComponent: (id) => {
     set({ highlightedComponentId: id });

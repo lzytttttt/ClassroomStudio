@@ -6,7 +6,7 @@ import {
   ArrowLeft, Save, Download, MousePointer2, Hand, Undo2, Redo2,
   Copy, Trash2, Grid3x3, Magnet, Play, ImageDown, Camera,
   PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen,
-  GraduationCap,
+  GraduationCap, Cable,
 } from 'lucide-react';
 import { canvas2dScreenshotRef } from '@/engine/canvas2d/Canvas2D';
 
@@ -70,6 +70,9 @@ export default function Toolbar({ saveStatus, onSaveStatusChange }: { saveStatus
       </button>
       <button onClick={() => setActiveTool('pan')} style={activeTool === 'pan' ? btnActive : btnBase} title="平移工具 (H)">
         <Hand size={16} />
+      </button>
+      <button onClick={() => setActiveTool('connect')} style={activeTool === 'connect' ? {...btnActive, color: '#7C3AED'} : btnBase} title="连线工具 (C) — 连接两个设备">
+        <Cable size={16} />
       </button>
 
       <Divider />
