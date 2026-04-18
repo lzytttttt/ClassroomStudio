@@ -87,6 +87,20 @@ interface SceneState {
   addConnection: (connection: Connection) => void;
   removeConnection: (id: string) => void;
 
+  // Layer actions
+  bringToFront: (ids: string[]) => void;
+  sendToBack: (ids: string[]) => void;
+  bringForward: (ids: string[]) => void;
+  sendBackward: (ids: string[]) => void;
+
+  // Group actions
+  groupSelected: () => void;
+  ungroupSelected: () => void;
+
+  // Alignment & Distribution (operate on selectedIds)
+  alignComponents: (direction: 'left' | 'right' | 'top' | 'bottom' | 'centerH' | 'centerV') => void;
+  distributeComponents: (axis: 'horizontal' | 'vertical') => void;
+
   // Helpers
   getSelectedComponents: () => SceneComponent[];
 }
@@ -351,6 +365,171 @@ export const useSceneStore = create<SceneState>()(temporal((set, get) => ({
     return scene.components.filter((c) =>
       scene.viewState.selectedIds.includes(c.id)
     );
+  },
+
+  // ==================== Layer Actions ====================
+
+  bringToFront: (ids) => set((state) => {
+    const maxZ = Math.max(...state.scene.components.map(c => c.zIndex), 0);
+    return {
+      scene: {
+        ...state.scene,
+        components: state.scene.components.map((c, i) =>
+          ids.includes(c.id) ? { ...c, zIndex: maxZ + 1 + ids.indexOf(c.id) } : c
+        ),
+      },
+    };
+  }),
+
+  sendToBack: (ids) => set((state) => {
+    const minZ = Math.min(...state.scene.components.map(c => c.zIndex), 0);
+    return {
+      scene: {
+        ...state.scene,
+        components: state.scene.components.map((c) =>
+          ids.includes(c.id) ? { ...c, zIndex: minZ - 1 - ids.indexOf(c.id) } : c
+        ),
+      },
+    };
+  }),
+
+  bringForward: (ids) => set((state) => ({
+    scene: {
+      ...state.scene,
+      components: state.scene.components.map((c) =>
+        ids.includes(c.id) ? { ...c, zIndex: c.zIndex + 1 } : c
+      ),
+    },
+  })),
+
+  sendBackward: (ids) => set((state) => ({
+    scene: {
+      ...state.scene,
+      components: state.scene.components.map((c) =>
+        ids.includes(c.id) ? { ...c, zIndex: Math.max(0, c.zIndex - 1) } : c
+      ),
+    },
+  })),
+
+  // ==================== Group Actions ====================
+
+  groupSelected: () => {
+    const { scene } = get();
+    const ids = scene.viewState.selectedIds;
+    if (ids.length < 2) return;
+    const groupId = generateId();
+    set((state) => ({
+      scene: {
+        ...state.scene,
+        components: state.scene.components.map((c) =>
+          ids.includes(c.id) ? { ...c, groupId } : c
+        ),
+      },
+    }));
+  },
+
+  ungroupSelected: () => {
+    const { scene } = get();
+    const ids = scene.viewState.selectedIds;
+    set((state) => ({
+      scene: {
+        ...state.scene,
+        components: state.scene.components.map((c) =>
+          ids.includes(c.id) ? { ...c, groupId: null } : c
+        ),
+      },
+    }));
+  },
+
+  // ==================== Alignment & Distribution ====================
+
+  alignComponents: (direction) => {
+    const { scene } = get();
+    const ids = scene.viewState.selectedIds;
+    if (ids.length < 2) return;
+
+    const selected = scene.components.filter(c => ids.includes(c.id));
+    const getW = (c: SceneComponent) => {
+      const a = getAssetById(c.assetId);
+      return a ? a.defaultSize.width * c.scale.x : 600;
+    };
+    const getH = (c: SceneComponent) => {
+      const a = getAssetById(c.assetId);
+      return a ? a.defaultSize.height * c.scale.y : 400;
+    };
+
+    let targetValue: number;
+    switch (direction) {
+      case 'left':   targetValue = Math.min(...selected.map(c => c.position.x)); break;
+      case 'right':  targetValue = Math.max(...selected.map(c => c.position.x + getW(c))); break;
+      case 'top':    targetValue = Math.min(...selected.map(c => c.position.y)); break;
+      case 'bottom': targetValue = Math.max(...selected.map(c => c.position.y + getH(c))); break;
+      case 'centerH': targetValue = selected.reduce((s, c) => s + c.position.x + getW(c) / 2, 0) / selected.length; break;
+      case 'centerV': targetValue = selected.reduce((s, c) => s + c.position.y + getH(c) / 2, 0) / selected.length; break;
+    }
+
+    set((state) => ({
+      scene: {
+        ...state.scene,
+        components: state.scene.components.map((c) => {
+          if (!ids.includes(c.id)) return c;
+          switch (direction) {
+            case 'left':    return { ...c, position: { ...c.position, x: targetValue } };
+            case 'right':   return { ...c, position: { ...c.position, x: targetValue - getW(c) } };
+            case 'top':     return { ...c, position: { ...c.position, y: targetValue } };
+            case 'bottom':  return { ...c, position: { ...c.position, y: targetValue - getH(c) } };
+            case 'centerH': return { ...c, position: { ...c.position, x: targetValue - getW(c) / 2 } };
+            case 'centerV': return { ...c, position: { ...c.position, y: targetValue - getH(c) / 2 } };
+            default: return c;
+          }
+        }),
+      },
+    }));
+  },
+
+  distributeComponents: (axis) => {
+    const { scene } = get();
+    const ids = scene.viewState.selectedIds;
+    if (ids.length < 3) return;
+
+    const selected = scene.components
+      .filter(c => ids.includes(c.id))
+      .sort((a, b) => axis === 'horizontal' ? a.position.x - b.position.x : a.position.y - b.position.y);
+
+    const getSize = (c: SceneComponent) => {
+      const a = getAssetById(c.assetId);
+      return axis === 'horizontal'
+        ? (a ? a.defaultSize.width * c.scale.x : 600)
+        : (a ? a.defaultSize.height * c.scale.y : 400);
+    };
+
+    const first = selected[0];
+    const last = selected[selected.length - 1];
+    const prop = axis === 'horizontal' ? 'x' : 'y';
+    const totalSpan = (last.position[prop] + getSize(last)) - first.position[prop];
+    const totalSizes = selected.reduce((s, c) => s + getSize(c), 0);
+    const gap = (totalSpan - totalSizes) / (selected.length - 1);
+
+    let cursor = first.position[prop];
+    const posMap = new Map<string, number>();
+    selected.forEach(c => {
+      posMap.set(c.id, cursor);
+      cursor += getSize(c) + gap;
+    });
+
+    set((state) => ({
+      scene: {
+        ...state.scene,
+        components: state.scene.components.map(c => {
+          const newPos = posMap.get(c.id);
+          if (newPos === undefined) return c;
+          return {
+            ...c,
+            position: { ...c.position, [prop]: newPos },
+          };
+        }),
+      },
+    }));
   },
 }), {
   partialize: (state) => ({ scene: state.scene }),

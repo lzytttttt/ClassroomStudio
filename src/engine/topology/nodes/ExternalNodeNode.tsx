@@ -1,11 +1,10 @@
 import React from 'react';
 import { Handle, Position } from '@xyflow/react';
-import type { NodeProps } from '@xyflow/react';
+import type { Node, NodeProps } from '@xyflow/react';
 import type { ExternalNode } from '@/shared/types';
 
-interface ExternalNodeData {
-  node: ExternalNode;
-}
+export type ExternalNodeData = { node: ExternalNode };
+export type ExternalNodeType = Node<ExternalNodeData, 'external'>;
 
 const icons: Record<string, string> = {
   'department': '🏢',
@@ -19,7 +18,7 @@ const icons: Record<string, string> = {
   'power-grid': '⚡',
 };
 
-export function ExternalNodeNode({ data, selected }: NodeProps<ExternalNodeData>) {
+export function ExternalNodeNode({ data, selected }: NodeProps<ExternalNodeType>) {
   const { node } = data;
 
   return (

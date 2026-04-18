@@ -1,15 +1,14 @@
 import React from 'react';
 import { Handle, Position } from '@xyflow/react';
-import type { NodeProps } from '@xyflow/react';
+import type { Node, NodeProps } from '@xyflow/react';
 import { Asset2DView } from '@/graphics';
 import { getAssetById } from '@/features/component-library/assets-data';
 import type { SceneComponent } from '@/shared/types';
 
-interface DeviceNodeData {
-  component: SceneComponent;
-}
+export type DeviceNodeData = { component: SceneComponent };
+export type DeviceNodeType = Node<DeviceNodeData, 'device'>;
 
-export function DeviceNode({ data, selected }: NodeProps<DeviceNodeData>) {
+export function DeviceNode({ data, selected }: NodeProps<DeviceNodeType>) {
   const { component } = data;
   const asset = getAssetById(component.assetId);
 

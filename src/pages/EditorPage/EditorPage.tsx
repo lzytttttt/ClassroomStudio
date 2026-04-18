@@ -1,4 +1,4 @@
-import { useCallback, useEffect } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import Toolbar from '@/features/toolbar/Toolbar';
 import ComponentLibrary from '@/features/component-library/ComponentLibrary';
@@ -13,13 +13,20 @@ import { useSceneStore } from '@/store/sceneStore';
 import { useUIStore } from '@/store/uiStore';
 import { useProjectStore } from '@/store/projectStore';
 import { getProject } from '@/lib/db';
+import CanvasContextMenu from '@/features/context-menu/CanvasContextMenu';
 
 export default function EditorPage() {
   const { projectId } = useParams();
-  const { scene, removeComponents, copySelected, pasteClipboard, selectAll, clearSelection, setScene } = useSceneStore();
+  const { scene, removeComponents, copySelected, pasteClipboard, selectAll, clearSelection, setScene, groupSelected, ungroupSelected } = useSceneStore();
   const { leftSidebarOpen, rightSidebarOpen } = useUIStore();
-  const { currentProject, setCurrentProject } = useProjectStore();
+  const { currentProject, setCurrentProject, saveCurrentProject } = useProjectStore();
+  const { addToast } = useUIStore();
   const activeView = scene.viewState.activeView;
+  const [contextMenu, setContextMenu] = useState<{ x: number; y: number } | null>(null);
+  const [saveStatus, setSaveStatus] = useState<'saved' | 'saving' | 'unsaved'>('saved');
+  const autoSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const sceneVersionRef = useRef(0);
+  const initialLoadDone = useRef(false);
 
   // Load project on mount if projectId is present
   useEffect(() => {
@@ -36,7 +43,41 @@ export default function EditorPage() {
       }
     }
     load();
+    initialLoadDone.current = true;
   }, [projectId, currentProject, setCurrentProject, setScene]);
+
+  // Auto-save: watch scene changes with 3s debounce
+  useEffect(() => {
+    if (!initialLoadDone.current || !currentProject) return;
+    // Skip the first render (initial scene load)
+    if (sceneVersionRef.current === 0) {
+      sceneVersionRef.current = 1;
+      return;
+    }
+
+    setSaveStatus('unsaved');
+
+    if (autoSaveTimer.current) {
+      clearTimeout(autoSaveTimer.current);
+    }
+
+    autoSaveTimer.current = setTimeout(async () => {
+      setSaveStatus('saving');
+      try {
+        await saveCurrentProject(scene);
+        setSaveStatus('saved');
+      } catch (err) {
+        console.error('Auto-save failed:', err);
+        setSaveStatus('unsaved');
+      }
+    }, 3000);
+
+    return () => {
+      if (autoSaveTimer.current) {
+        clearTimeout(autoSaveTimer.current);
+      }
+    };
+  }, [scene, currentProject, saveCurrentProject]);
 
   // Keyboard shortcuts
   const handleKeyDown = useCallback((e: KeyboardEvent) => {
@@ -57,6 +98,26 @@ export default function EditorPage() {
           e.preventDefault();
           selectAll();
           break;
+        case 'z':
+          e.preventDefault();
+          if (e.shiftKey) {
+            useSceneStore.temporal.getState().redo();
+          } else {
+            useSceneStore.temporal.getState().undo();
+          }
+          break;
+        case 'y':
+          e.preventDefault();
+          useSceneStore.temporal.getState().redo();
+          break;
+        case 'g':
+          e.preventDefault();
+          if (e.shiftKey) {
+            ungroupSelected();
+          } else {
+            groupSelected();
+          }
+          break;
       }
     }
 
@@ -70,7 +131,7 @@ export default function EditorPage() {
     if (e.key === 'Escape') {
       clearSelection();
     }
-  }, [scene.viewState.selectedIds, copySelected, pasteClipboard, selectAll, removeComponents, clearSelection]);
+  }, [scene.viewState.selectedIds, copySelected, pasteClipboard, selectAll, removeComponents, clearSelection, groupSelected, ungroupSelected]);
 
   useEffect(() => {
     window.addEventListener('keydown', handleKeyDown);
@@ -86,7 +147,7 @@ export default function EditorPage() {
       overflow: 'hidden',
     }}>
       {/* Toolbar */}
-      <Toolbar />
+      <Toolbar saveStatus={saveStatus} onSaveStatusChange={setSaveStatus} />
 
       {/* View Tabs */}
       <ViewTabs />
@@ -115,12 +176,20 @@ export default function EditorPage() {
         )}
 
         {/* Canvas / View Area */}
-        <div style={{
-          flex: 1,
-          position: 'relative',
-          overflow: 'hidden',
-          background: 'var(--color-bg-canvas)',
-        }}>
+        <div
+          style={{
+            flex: 1,
+            position: 'relative',
+            overflow: 'hidden',
+            background: 'var(--color-bg-canvas)',
+          }}
+          onContextMenu={(e) => {
+            if (activeView === '2d') {
+              e.preventDefault();
+              setContextMenu({ x: e.clientX, y: e.clientY });
+            }
+          }}
+        >
           {activeView === '2d' && <Canvas2D />}
           {activeView === 'bom' && <BOMView />}
           {activeView === '2.5d' && <Canvas25D />}
@@ -143,6 +212,14 @@ export default function EditorPage() {
           </div>
         )}
       </div>
+
+      {/* Context Menu */}
+      <CanvasContextMenu
+        x={contextMenu?.x ?? 0}
+        y={contextMenu?.y ?? 0}
+        visible={contextMenu !== null}
+        onClose={() => setContextMenu(null)}
+      />
 
       {/* Status Bar */}
       <StatusBar />

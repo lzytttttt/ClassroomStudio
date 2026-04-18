@@ -4,12 +4,13 @@ import { useUIStore } from '@/store/uiStore';
 import { useProjectStore } from '@/store/projectStore';
 import {
   ArrowLeft, Save, Download, MousePointer2, Hand, Undo2, Redo2,
-  Copy, Trash2, Grid3x3, Magnet, Play, ImageDown,
+  Copy, Trash2, Grid3x3, Magnet, Play, ImageDown, Camera,
   PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen,
   GraduationCap,
 } from 'lucide-react';
+import { canvas2dScreenshotRef } from '@/engine/canvas2d/Canvas2D';
 
-export default function Toolbar() {
+export default function Toolbar({ saveStatus, onSaveStatusChange }: { saveStatus: 'saved' | 'saving' | 'unsaved'; onSaveStatusChange: (s: 'saved' | 'saving' | 'unsaved') => void }) {
   const navigate = useNavigate();
   const { scene, removeComponents, copySelected, duplicateComponents, toggleGrid, toggleSnap } = useSceneStore();
   const { undo, redo, pastStates, futureStates } = useSceneStore.temporal.getState();
@@ -120,6 +121,23 @@ export default function Toolbar() {
       {/* Spacer */}
       <div style={{ flex: 1 }} />
 
+      {/* Screenshot */}
+      <button
+        onClick={() => {
+          if (canvas2dScreenshotRef.current) {
+            canvas2dScreenshotRef.current();
+            addToast({ type: 'success', message: '截图已导出' });
+          } else {
+            addToast({ type: 'info', message: '请切换到 2D 视图进行截图' });
+          }
+        }}
+        style={{...btnBase, gap: 5, padding: '6px 10px'}}
+        title="导出截图 (PNG)"
+      >
+        <Camera size={15} />
+        <span style={{ fontSize: 12 }}>截图</span>
+      </button>
+
       {/* Right Actions */}
       <button onClick={toggleLeftSidebar} style={btnBase} title="切换组件库">
         {leftSidebarOpen ? <PanelLeftClose size={16} /> : <PanelLeftOpen size={16} />}
@@ -150,7 +168,9 @@ export default function Toolbar() {
       </button>
       <button 
         onClick={async () => {
+          onSaveStatusChange('saving');
           await saveCurrentProject(scene);
+          onSaveStatusChange('saved');
           addToast({ type: 'success', message: '项目保存成功' });
         }}
         style={{
@@ -164,6 +184,21 @@ export default function Toolbar() {
         <Save size={14} />
         保存
       </button>
+
+      {/* Save Status Indicator */}
+      <div style={{
+        display: 'flex', alignItems: 'center', gap: 5,
+        fontSize: 11, marginLeft: 4, minWidth: 60,
+        color: saveStatus === 'saved' ? '#10B981' : saveStatus === 'saving' ? '#F59E0B' : '#94A3B8',
+        transition: 'color 0.3s ease',
+      }}>
+        <div style={{
+          width: 6, height: 6, borderRadius: '50%',
+          background: saveStatus === 'saved' ? '#10B981' : saveStatus === 'saving' ? '#F59E0B' : '#94A3B8',
+          animation: saveStatus === 'saving' ? 'pulse 1s infinite' : 'none',
+        }} />
+        {saveStatus === 'saved' ? '已保存' : saveStatus === 'saving' ? '保存中...' : '未保存'}
+      </div>
     </div>
   );
 }

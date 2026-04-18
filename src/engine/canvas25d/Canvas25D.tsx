@@ -133,7 +133,6 @@ export default function Canvas25D() {
             wallColor={room.wallColor}
           />
 
-// inside the map logic
           {/* Components Rendering */}
           {sortedComponents.map((comp) => {
             const isSelected = selectedIds.includes(comp.id);

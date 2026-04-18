@@ -5,6 +5,10 @@ import { useSceneStore } from '@/store/sceneStore';
 import { useUIStore } from '@/store/uiStore';
 import { getAssetById } from '@/features/component-library/assets-data';
 import type { SceneComponent } from '@/shared/types';
+import { getComponentRenderer } from './component-renderers';
+
+// Expose screenshot capability via a global ref
+export const canvas2dScreenshotRef: { current: (() => void) | null } = { current: null };
 
 // ============================================
 // Constants
@@ -19,6 +23,8 @@ export default function Canvas2D() {
   const transformerRef = useRef<Konva.Transformer>(null);
   const [stageSize, setStageSize] = useState({ width: 800, height: 600 });
   const [alignmentLines, setAlignmentLines] = useState<{ id: string; points: [number, number, number, number]; color: string; }[]>([]);
+  const [selectionBox, setSelectionBox] = useState<{ startX: number; startY: number; endX: number; endY: number } | null>(null);
+  const isSelecting = useRef(false);
 
   const {
     scene, addComponent, updateComponent, selectComponents,
@@ -37,6 +43,22 @@ export default function Canvas2D() {
   // Center offset so room is centered in canvas
   const offsetX = (stageSize.width / scale - roomW) / 2 + canvas2d.panX / scale;
   const offsetY = (stageSize.height / scale - roomH) / 2 + canvas2d.panY / scale;
+
+  // ============================================
+  // Screenshot function (exposed via ref)
+  // ============================================
+  useEffect(() => {
+    canvas2dScreenshotRef.current = () => {
+      const stage = stageRef.current;
+      if (!stage) return;
+      const dataUrl = stage.toDataURL({ pixelRatio: 2, mimeType: 'image/png' });
+      const link = document.createElement('a');
+      link.download = `classroom-2d-${Date.now()}.png`;
+      link.href = dataUrl;
+      link.click();
+    };
+    return () => { canvas2dScreenshotRef.current = null; };
+  }, []);
 
   // ============================================
   // Resize observer
@@ -114,11 +136,87 @@ export default function Canvas2D() {
   // Stage events
   // ============================================
   const handleStageClick = useCallback((e: Konva.KonvaEventObject<MouseEvent>) => {
-    // Click on empty area → deselect
-    if (e.target === e.target.getStage() || e.target.name() === 'background' || e.target.name() === 'grid-line' || e.target.name() === 'wall') {
+    // Click on empty area → deselect (only if not finishing a selection box)
+    if (!isSelecting.current && (e.target === e.target.getStage() || e.target.name() === 'background' || e.target.name() === 'grid-line' || e.target.name() === 'wall')) {
       clearSelection();
     }
   }, [clearSelection]);
+
+  // ============================================
+  // Box Selection (marquee select)
+  // ============================================
+  const handleStageMouseDown = useCallback((e: Konva.KonvaEventObject<MouseEvent>) => {
+    if (activeTool !== 'select') return;
+    // Only start selection on empty area click
+    if (e.target !== e.target.getStage() && e.target.name() !== 'background' && e.target.name() !== 'grid-line' && e.target.name() !== 'wall') return;
+
+    const stage = stageRef.current;
+    if (!stage) return;
+    const pos = stage.getPointerPosition();
+    if (!pos) return;
+
+    // Convert screen pos to scene coordinates
+    const sceneX = pos.x / scale - offsetX;
+    const sceneY = pos.y / scale - offsetY;
+
+    isSelecting.current = true;
+    setSelectionBox({ startX: sceneX, startY: sceneY, endX: sceneX, endY: sceneY });
+  }, [activeTool, scale, offsetX, offsetY]);
+
+  const handleStageMouseMove = useCallback((e: Konva.KonvaEventObject<MouseEvent>) => {
+    if (!isSelecting.current) return;
+    const stage = stageRef.current;
+    if (!stage) return;
+    const pos = stage.getPointerPosition();
+    if (!pos) return;
+
+    const sceneX = pos.x / scale - offsetX;
+    const sceneY = pos.y / scale - offsetY;
+
+    setSelectionBox(prev => prev ? { ...prev, endX: sceneX, endY: sceneY } : null);
+  }, [scale, offsetX, offsetY]);
+
+  const handleStageMouseUp = useCallback(() => {
+    if (!isSelecting.current || !selectionBox) {
+      isSelecting.current = false;
+      setSelectionBox(null);
+      return;
+    }
+    isSelecting.current = false;
+
+    // Calculate selection rect in scene space (px)
+    const x1 = Math.min(selectionBox.startX, selectionBox.endX);
+    const y1 = Math.min(selectionBox.startY, selectionBox.endY);
+    const x2 = Math.max(selectionBox.startX, selectionBox.endX);
+    const y2 = Math.max(selectionBox.startY, selectionBox.endY);
+
+    // Only select if box is large enough (avoid click-like micro drags)
+    if (Math.abs(x2 - x1) < 5 && Math.abs(y2 - y1) < 5) {
+      setSelectionBox(null);
+      return;
+    }
+
+    // Find components intersecting with this box
+    const selectedIds: string[] = [];
+    components.forEach(comp => {
+      const asset = getAssetById(comp.assetId);
+      if (!asset) return;
+      const cw = asset.defaultSize.width * MM_TO_PX * comp.scale.x;
+      const ch = asset.defaultSize.height * MM_TO_PX * comp.scale.y;
+      const cx = comp.position.x * MM_TO_PX;
+      const cy = comp.position.y * MM_TO_PX;
+
+      // Check intersection (component rect vs selection rect)
+      if (cx + cw > x1 && cx < x2 && cy + ch > y1 && cy < y2) {
+        selectedIds.push(comp.id);
+      }
+    });
+
+    if (selectedIds.length > 0) {
+      selectComponents(selectedIds);
+    }
+    setSelectionBox(null);
+  }, [selectionBox, components, selectComponents]);
 
   const handleWheel = useCallback((e: Konva.KonvaEventObject<WheelEvent>) => {
     e.evt.preventDefault();
@@ -251,6 +349,9 @@ export default function Canvas2D() {
         scaleX={scale}
         scaleY={scale}
         onClick={handleStageClick}
+        onMouseDown={handleStageMouseDown}
+        onMouseMove={handleStageMouseMove}
+        onMouseUp={handleStageMouseUp}
         onWheel={handleWheel}
         draggable={activeTool === 'pan'}
         onDragEnd={(e) => {
@@ -279,7 +380,7 @@ export default function Canvas2D() {
               name="background"
               x={0} y={0}
               width={roomW} height={roomH}
-              fill="#F8FAFC"
+              fill={room.floorColor || '#F8FAFC'}
               shadowColor="rgba(0,0,0,0.15)"
               shadowBlur={30}
               shadowOffsetY={8}
@@ -290,7 +391,102 @@ export default function Canvas2D() {
             {gridLines}
 
             {/* Walls */}
-            <Line name="wall" points={[0, 0, roomW, 0, roomW, roomH, 0, roomH, 0, 0]} stroke={WALL_COLOR} strokeWidth={WALL_WIDTH} closed listening={false} fill="transparent" />
+            <Line name="wall" points={[0, 0, roomW, 0, roomW, roomH, 0, roomH, 0, 0]} stroke={room.wallColor || WALL_COLOR} strokeWidth={WALL_WIDTH} closed listening={false} fill="transparent" />
+
+            {/* Door/Window rendering */}
+            {[...room.doors, ...room.windows].map(item => {
+              const isDoor = item.type === 'door';
+              const posPx = item.position * MM_TO_PX;
+              const widPx = item.width * MM_TO_PX;
+              const itemColor = isDoor ? '#8B4513' : '#87CEEB';
+              const bgColor = room.floorColor || '#F8FAFC';
+
+              // Calculate wall position and opening coordinates
+              if (item.wall === 'north') {
+                return (
+                  <Group key={item.id}>
+                    {/* Clear wall segment */}
+                    <Line points={[posPx, 0, posPx + widPx, 0]} stroke={bgColor} strokeWidth={WALL_WIDTH + 2} listening={false} />
+                    {isDoor ? (
+                      // Door: arc swing indicator
+                      <Group>
+                        <Line points={[posPx, 0, posPx, widPx * 0.6]} stroke={itemColor} strokeWidth={1.5} opacity={0.5} dash={[3, 3]} listening={false} />
+                        <Line points={[posPx + widPx, 0, posPx + widPx, 0]} stroke={itemColor} strokeWidth={3} listening={false} />
+                        <Line points={[posPx, 0, posPx, 0]} stroke={itemColor} strokeWidth={3} listening={false} />
+                      </Group>
+                    ) : (
+                      // Window: parallel lines
+                      <Group>
+                        <Line points={[posPx, -2, posPx + widPx, -2]} stroke={itemColor} strokeWidth={2} listening={false} />
+                        <Line points={[posPx, 2, posPx + widPx, 2]} stroke={itemColor} strokeWidth={2} listening={false} />
+                        <Line points={[posPx, -2, posPx, 2]} stroke={itemColor} strokeWidth={1} listening={false} />
+                        <Line points={[posPx + widPx, -2, posPx + widPx, 2]} stroke={itemColor} strokeWidth={1} listening={false} />
+                      </Group>
+                    )}
+                  </Group>
+                );
+              } else if (item.wall === 'south') {
+                return (
+                  <Group key={item.id}>
+                    <Line points={[posPx, roomH, posPx + widPx, roomH]} stroke={bgColor} strokeWidth={WALL_WIDTH + 2} listening={false} />
+                    {isDoor ? (
+                      <Group>
+                        <Line points={[posPx, roomH, posPx, roomH - widPx * 0.6]} stroke={itemColor} strokeWidth={1.5} opacity={0.5} dash={[3, 3]} listening={false} />
+                        <Line points={[posPx + widPx, roomH, posPx + widPx, roomH]} stroke={itemColor} strokeWidth={3} listening={false} />
+                        <Line points={[posPx, roomH, posPx, roomH]} stroke={itemColor} strokeWidth={3} listening={false} />
+                      </Group>
+                    ) : (
+                      <Group>
+                        <Line points={[posPx, roomH - 2, posPx + widPx, roomH - 2]} stroke={itemColor} strokeWidth={2} listening={false} />
+                        <Line points={[posPx, roomH + 2, posPx + widPx, roomH + 2]} stroke={itemColor} strokeWidth={2} listening={false} />
+                        <Line points={[posPx, roomH - 2, posPx, roomH + 2]} stroke={itemColor} strokeWidth={1} listening={false} />
+                        <Line points={[posPx + widPx, roomH - 2, posPx + widPx, roomH + 2]} stroke={itemColor} strokeWidth={1} listening={false} />
+                      </Group>
+                    )}
+                  </Group>
+                );
+              } else if (item.wall === 'east') {
+                return (
+                  <Group key={item.id}>
+                    <Line points={[roomW, posPx, roomW, posPx + widPx]} stroke={bgColor} strokeWidth={WALL_WIDTH + 2} listening={false} />
+                    {isDoor ? (
+                      <Group>
+                        <Line points={[roomW, posPx, roomW - widPx * 0.6, posPx]} stroke={itemColor} strokeWidth={1.5} opacity={0.5} dash={[3, 3]} listening={false} />
+                        <Line points={[roomW, posPx + widPx, roomW, posPx + widPx]} stroke={itemColor} strokeWidth={3} listening={false} />
+                        <Line points={[roomW, posPx, roomW, posPx]} stroke={itemColor} strokeWidth={3} listening={false} />
+                      </Group>
+                    ) : (
+                      <Group>
+                        <Line points={[roomW - 2, posPx, roomW - 2, posPx + widPx]} stroke={itemColor} strokeWidth={2} listening={false} />
+                        <Line points={[roomW + 2, posPx, roomW + 2, posPx + widPx]} stroke={itemColor} strokeWidth={2} listening={false} />
+                        <Line points={[roomW - 2, posPx, roomW + 2, posPx]} stroke={itemColor} strokeWidth={1} listening={false} />
+                        <Line points={[roomW - 2, posPx + widPx, roomW + 2, posPx + widPx]} stroke={itemColor} strokeWidth={1} listening={false} />
+                      </Group>
+                    )}
+                  </Group>
+                );
+              } else { // west
+                return (
+                  <Group key={item.id}>
+                    <Line points={[0, posPx, 0, posPx + widPx]} stroke={bgColor} strokeWidth={WALL_WIDTH + 2} listening={false} />
+                    {isDoor ? (
+                      <Group>
+                        <Line points={[0, posPx, widPx * 0.6, posPx]} stroke={itemColor} strokeWidth={1.5} opacity={0.5} dash={[3, 3]} listening={false} />
+                        <Line points={[0, posPx + widPx, 0, posPx + widPx]} stroke={itemColor} strokeWidth={3} listening={false} />
+                        <Line points={[0, posPx, 0, posPx]} stroke={itemColor} strokeWidth={3} listening={false} />
+                      </Group>
+                    ) : (
+                      <Group>
+                        <Line points={[-2, posPx, -2, posPx + widPx]} stroke={itemColor} strokeWidth={2} listening={false} />
+                        <Line points={[2, posPx, 2, posPx + widPx]} stroke={itemColor} strokeWidth={2} listening={false} />
+                        <Line points={[-2, posPx, 2, posPx]} stroke={itemColor} strokeWidth={1} listening={false} />
+                        <Line points={[-2, posPx + widPx, 2, posPx + widPx]} stroke={itemColor} strokeWidth={1} listening={false} />
+                      </Group>
+                    )}
+                  </Group>
+                );
+              }
+            })}
 
             {/* Room dimensions labels */}
             <Text
@@ -350,6 +546,23 @@ export default function Canvas2D() {
              ))}
           </Group>
 
+          {/* Selection Box */}
+          {selectionBox && (
+            <Group x={offsetX} y={offsetY}>
+              <Rect
+                x={Math.min(selectionBox.startX, selectionBox.endX)}
+                y={Math.min(selectionBox.startY, selectionBox.endY)}
+                width={Math.abs(selectionBox.endX - selectionBox.startX)}
+                height={Math.abs(selectionBox.endY - selectionBox.startY)}
+                fill="rgba(59, 130, 246, 0.08)"
+                stroke="#3B82F6"
+                strokeWidth={1 / scale}
+                dash={[6 / scale, 4 / scale]}
+                listening={false}
+              />
+            </Group>
+          )}
+
           {/* Transformer */}
           <Transformer
             ref={transformerRef}
@@ -394,9 +607,9 @@ function ComponentNode({ component, isSelected, onSelect, onDragMove, onDragEnd,
   const px = component.position.x * MM_TO_PX;
   const py = component.position.y * MM_TO_PX;
 
-  // Determine visual style based on category
   const color = asset.color;
-  const labelFontSize = Math.max(8, Math.min(11, w / 6));
+  const labelFontSize = Math.max(7, Math.min(10, w / 7));
+  const renderer = getComponentRenderer(asset.icon2d);
 
   return (
     <Group
@@ -413,7 +626,6 @@ function ComponentNode({ component, isSelected, onSelect, onDragMove, onDragEnd,
         onDragMove(component.id, e.target.x(), e.target.y(), w, h, e);
       }}
       onDragEnd={(e) => {
-        // use the exact x,y from the node after potential snapping manipulation
         const newX = e.target.x() / MM_TO_PX;
         const newY = e.target.y() / MM_TO_PX;
         onDragEnd(component.id, newX, newY);
@@ -422,88 +634,89 @@ function ComponentNode({ component, isSelected, onSelect, onDragMove, onDragEnd,
     >
       {/* Shadow */}
       <Rect
-        x={2} y={2}
+        x={1.5} y={1.5}
         width={w} height={h}
-        fill="rgba(0,0,0,0.06)"
+        fill="rgba(0,0,0,0.08)"
         cornerRadius={3}
         listening={false}
       />
 
-      {/* Main body (Glass effect) */}
-      <Rect
-        x={0} y={0}
-        width={w} height={h}
-        fill={`${color}15`}
-        stroke={isSelected ? '#38BDF8' : `${color}80`}
-        strokeWidth={isSelected ? 2 : 1}
-        cornerRadius={4}
-        shadowColor={color}
-        shadowBlur={isSelected ? 10 : 0}
-        shadowOpacity={0.3}
-      />
-
-      {/* Inner Highlight for depth */}
-      <Rect
-        x={1} y={1}
-        width={w - 2} height={h - 2}
-        stroke="rgba(255,255,255,0.4)"
-        strokeWidth={1}
-        cornerRadius={3}
-        listening={false}
-      />
-
-      {/* Color indicator bar */}
-      <Rect
-        x={0} y={0}
-        width={w} height={4}
-        fill={color}
-        cornerRadius={[4, 4, 0, 0]}
-        opacity={0.9}
-        listening={false}
-      />
-
-      {/* Glowing Icon dot */}
-      <Circle
-        x={w / 2} y={h / 2 - (labelFontSize > 9 ? 4 : 0)}
-        radius={Math.min(w, h) * 0.15}
-        fill={color}
-        opacity={0.7}
-        shadowColor={color}
-        shadowBlur={4}
-        shadowOpacity={0.5}
-        listening={false}
-      />
-
-      {/* Label */}
-      {w > 20 && h > 16 && (
-        <Text
-          x={2}
-          y={h - labelFontSize - 3}
-          width={w - 4}
-          text={component.name}
-          fontSize={labelFontSize}
-          fontFamily="Inter, Noto Sans SC, sans-serif"
-          fill={`${color}`}
-          align="center"
-          ellipsis={true}
-          wrap="none"
-          listening={false}
-        />
+      {/* Device body — use detailed renderer if available, otherwise fallback */}
+      {renderer ? (
+        renderer(w, h, color)
+      ) : (
+        <Group>
+          <Rect
+            x={0} y={0}
+            width={w} height={h}
+            fill={`${color}20`}
+            stroke={`${color}80`}
+            strokeWidth={1}
+            cornerRadius={3}
+          />
+          <Rect
+            x={0} y={0}
+            width={w} height={3}
+            fill={color}
+            cornerRadius={[3, 3, 0, 0]}
+            opacity={0.8}
+            listening={false}
+          />
+          <Circle
+            x={w / 2} y={h / 2}
+            radius={Math.min(w, h) * 0.12}
+            fill={color}
+            opacity={0.5}
+            listening={false}
+          />
+        </Group>
       )}
 
-      {/* Selected Box Outline Glow */}
+      {/* Label (below device body) */}
+      {w > 15 && h > 12 && (
+        <Group>
+          {/* Label background */}
+          <Rect
+            x={0}
+            y={h + 1}
+            width={w}
+            height={labelFontSize + 4}
+            fill="rgba(255,255,255,0.85)"
+            cornerRadius={2}
+            listening={false}
+          />
+          <Text
+            x={1}
+            y={h + 2}
+            width={w - 2}
+            text={component.name}
+            fontSize={labelFontSize}
+            fontFamily="Inter, Noto Sans SC, sans-serif"
+            fill="#334155"
+            align="center"
+            ellipsis={true}
+            wrap="none"
+            listening={false}
+          />
+        </Group>
+      )}
+
+      {/* Selection highlight */}
       {isSelected && (
         <Rect
-          x={-4} y={-4}
-          width={w + 8} height={h + 8}
+          x={-3} y={-3}
+          width={w + 6} height={h + 6}
           stroke="#38BDF8"
           strokeWidth={2}
-          dash={[6, 4]}
-          cornerRadius={6}
+          dash={[6, 3]}
+          cornerRadius={5}
           listening={false}
-          opacity={0.6}
+          shadowColor="#38BDF8"
+          shadowBlur={8}
+          shadowOpacity={0.4}
         />
       )}
     </Group>
   );
 }
+

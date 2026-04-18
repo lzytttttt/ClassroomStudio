@@ -1,28 +1,17 @@
+import { useState } from 'react';
 import { useSceneStore } from '@/store/sceneStore';
 import { getAssetById } from '@/features/component-library/assets-data';
-import type { SceneComponent } from '@/shared/types';
+import type { SceneComponent, DoorWindow } from '@/shared/types';
 import { CATEGORY_LABELS } from '@/shared/types/constants';
-import { Settings2, Package, Ruler, Plug, DollarSign, MessageSquare } from 'lucide-react';
+import { Settings2, Package, Ruler, Plug, DollarSign, MessageSquare, Home, Palette, DoorOpen, Plus, Trash2 } from 'lucide-react';
+import { generateId } from '@/shared/utils/id';
 
 export default function PropertyPanel() {
-  const { scene, updateComponent } = useSceneStore();
+  const { scene, updateComponent, updateRoom } = useSceneStore();
   const selectedIds = scene.viewState.selectedIds;
 
   if (selectedIds.length === 0) {
-    return (
-      <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-        <div style={{ padding: '12px 14px', borderBottom: '1px solid var(--color-border)' }}>
-          <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--color-text-primary)' }}>属性</div>
-        </div>
-        <div style={{
-          flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center',
-          flexDirection: 'column', gap: 8, color: 'var(--color-text-tertiary)', padding: 20,
-        }}>
-          <Settings2 size={28} strokeWidth={1.5} style={{ opacity: 0.3 }} />
-          <span style={{ fontSize: 12, textAlign: 'center' }}>选择一个组件<br/>查看和编辑属性</span>
-        </div>
-      </div>
-    );
+    return <RoomEditor />;
   }
 
   if (selectedIds.length > 1) {
@@ -190,6 +179,291 @@ function FieldText({ label, value, onChange }: {
         className="input input-sm"
         style={{ flex: 1 }}
       />
+    </div>
+  );
+}
+
+// ==================== Room Editor ====================
+
+const WALL_LABELS: Record<string, string> = {
+  north: '北墙 (顶)',
+  south: '南墙 (底)',
+  east: '东墙 (右)',
+  west: '西墙 (左)',
+};
+
+const PRESET_COLORS = [
+  '#F1F5F9', '#E2E8F0', '#CBD5E1', '#FEF3C7', '#ECFCCB',
+  '#D5F0E5', '#DBEAFE', '#F3E8FF', '#FFE4E6', '#FFF7ED',
+  '#FAFAFA', '#F5F5F4', '#D4B896', '#8B7355', '#5C4033',
+];
+
+function RoomEditor() {
+  const { scene, updateRoom } = useSceneStore();
+  const { room } = scene;
+
+  const addDoorWindow = (type: 'door' | 'window') => {
+    const item: DoorWindow = {
+      id: generateId(),
+      type,
+      wall: 'south',
+      position: type === 'door' ? 3000 : 1500,
+      width: type === 'door' ? 1000 : 1500,
+      height: type === 'door' ? 2100 : 1200,
+    };
+    if (type === 'door') {
+      updateRoom({ doors: [...room.doors, item] });
+    } else {
+      updateRoom({ windows: [...room.windows, item] });
+    }
+  };
+
+  const updateDoorWindow = (id: string, updates: Partial<DoorWindow>, isDoor: boolean) => {
+    if (isDoor) {
+      updateRoom({
+        doors: room.doors.map(d => d.id === id ? { ...d, ...updates } : d),
+      });
+    } else {
+      updateRoom({
+        windows: room.windows.map(w => w.id === id ? { ...w, ...updates } : w),
+      });
+    }
+  };
+
+  const removeDoorWindow = (id: string, isDoor: boolean) => {
+    if (isDoor) {
+      updateRoom({ doors: room.doors.filter(d => d.id !== id) });
+    } else {
+      updateRoom({ windows: room.windows.filter(w => w.id !== id) });
+    }
+  };
+
+  return (
+    <div style={{ height: '100%', display: 'flex', flexDirection: 'column', overflow: 'auto' }}>
+      {/* Header */}
+      <div style={{
+        padding: '12px 14px', borderBottom: '1px solid var(--color-border)',
+        display: 'flex', alignItems: 'center', gap: 6,
+      }}>
+        <Home size={14} color="var(--color-primary)" />
+        <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--color-text-primary)' }}>教室设置</div>
+      </div>
+
+      {/* Room Dimensions */}
+      <Section icon={Ruler} title="教室尺寸">
+        <FieldRow
+          label="宽度"
+          value={room.width}
+          suffix="mm"
+          onChange={v => updateRoom({ width: Math.max(2000, Number(v)) })}
+        />
+        <div style={{ fontSize: 10, color: 'var(--color-text-tertiary)', marginTop: -4, marginBottom: 6, marginLeft: 42 }}>
+          = {(room.width / 1000).toFixed(1)}m
+        </div>
+        <FieldRow
+          label="深度"
+          value={room.height}
+          suffix="mm"
+          onChange={v => updateRoom({ height: Math.max(2000, Number(v)) })}
+        />
+        <div style={{ fontSize: 10, color: 'var(--color-text-tertiary)', marginTop: -4, marginBottom: 6, marginLeft: 42 }}>
+          = {(room.height / 1000).toFixed(1)}m
+        </div>
+        <FieldRow
+          label="层高"
+          value={room.ceilingHeight}
+          suffix="mm"
+          onChange={v => updateRoom({ ceilingHeight: Math.max(2000, Number(v)) })}
+        />
+        <div style={{ fontSize: 10, color: 'var(--color-text-tertiary)', marginTop: -4, marginBottom: 6, marginLeft: 42 }}>
+          = {(room.ceilingHeight / 1000).toFixed(1)}m
+        </div>
+
+        {/* Area display */}
+        <div style={{
+          marginTop: 4, padding: '6px 10px', borderRadius: 6,
+          background: 'var(--color-primary-50)', fontSize: 12,
+          color: 'var(--color-primary)', fontFamily: 'var(--font-mono)',
+          fontWeight: 600,
+        }}>
+          面积: {((room.width / 1000) * (room.height / 1000)).toFixed(1)} m²
+        </div>
+      </Section>
+
+      {/* Colors */}
+      <Section icon={Palette} title="外观颜色">
+        <div style={{ marginBottom: 8 }}>
+          <div style={{ fontSize: 11, color: 'var(--color-text-tertiary)', marginBottom: 4 }}>地板颜色</div>
+          <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', alignItems: 'center' }}>
+            {PRESET_COLORS.map(c => (
+              <button
+                key={`floor-${c}`}
+                onClick={() => updateRoom({ floorColor: c })}
+                style={{
+                  width: 20, height: 20, borderRadius: 4, border: room.floorColor === c ? '2px solid var(--color-primary)' : '1px solid var(--color-border)',
+                  background: c, cursor: 'pointer', padding: 0,
+                  boxShadow: room.floorColor === c ? 'var(--shadow-glow)' : 'none',
+                }}
+              />
+            ))}
+            <input
+              type="color"
+              value={room.floorColor}
+              onChange={e => updateRoom({ floorColor: e.target.value })}
+              style={{ width: 20, height: 20, border: 'none', padding: 0, cursor: 'pointer', borderRadius: 4 }}
+            />
+          </div>
+        </div>
+        <div>
+          <div style={{ fontSize: 11, color: 'var(--color-text-tertiary)', marginBottom: 4 }}>墙面颜色</div>
+          <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', alignItems: 'center' }}>
+            {PRESET_COLORS.map(c => (
+              <button
+                key={`wall-${c}`}
+                onClick={() => updateRoom({ wallColor: c })}
+                style={{
+                  width: 20, height: 20, borderRadius: 4, border: room.wallColor === c ? '2px solid var(--color-primary)' : '1px solid var(--color-border)',
+                  background: c, cursor: 'pointer', padding: 0,
+                  boxShadow: room.wallColor === c ? 'var(--shadow-glow)' : 'none',
+                }}
+              />
+            ))}
+            <input
+              type="color"
+              value={room.wallColor}
+              onChange={e => updateRoom({ wallColor: e.target.value })}
+              style={{ width: 20, height: 20, border: 'none', padding: 0, cursor: 'pointer', borderRadius: 4 }}
+            />
+          </div>
+        </div>
+      </Section>
+
+      {/* Doors & Windows */}
+      <Section icon={DoorOpen} title="门窗管理">
+        <div style={{ display: 'flex', gap: 6, marginBottom: 8 }}>
+          <button
+            onClick={() => addDoorWindow('door')}
+            style={{
+              flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4,
+              padding: '5px 8px', fontSize: 11, fontWeight: 500,
+              background: 'var(--color-bg-hover)', border: '1px solid var(--color-border)',
+              borderRadius: 'var(--radius-sm)', cursor: 'pointer', color: 'var(--color-text-secondary)',
+            }}
+          >
+            <Plus size={12} /> 添加门
+          </button>
+          <button
+            onClick={() => addDoorWindow('window')}
+            style={{
+              flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4,
+              padding: '5px 8px', fontSize: 11, fontWeight: 500,
+              background: 'var(--color-bg-hover)', border: '1px solid var(--color-border)',
+              borderRadius: 'var(--radius-sm)', cursor: 'pointer', color: 'var(--color-text-secondary)',
+            }}
+          >
+            <Plus size={12} /> 添加窗
+          </button>
+        </div>
+
+        {/* Door list */}
+        {room.doors.map((door, i) => (
+          <DoorWindowItem
+            key={door.id}
+            item={door}
+            index={i}
+            isDoor={true}
+            onUpdate={(updates) => updateDoorWindow(door.id, updates, true)}
+            onRemove={() => removeDoorWindow(door.id, true)}
+          />
+        ))}
+
+        {/* Window list */}
+        {room.windows.map((win, i) => (
+          <DoorWindowItem
+            key={win.id}
+            item={win}
+            index={i}
+            isDoor={false}
+            onUpdate={(updates) => updateDoorWindow(win.id, updates, false)}
+            onRemove={() => removeDoorWindow(win.id, false)}
+          />
+        ))}
+
+        {room.doors.length === 0 && room.windows.length === 0 && (
+          <div style={{ fontSize: 11, color: 'var(--color-text-tertiary)', textAlign: 'center', padding: '8px 0' }}>
+            点击上方按钮添加门或窗
+          </div>
+        )}
+      </Section>
+    </div>
+  );
+}
+
+function DoorWindowItem({ item, index, isDoor, onUpdate, onRemove }: {
+  item: DoorWindow; index: number; isDoor: boolean;
+  onUpdate: (updates: Partial<DoorWindow>) => void;
+  onRemove: () => void;
+}) {
+  const [expanded, setExpanded] = useState(false);
+  const label = isDoor ? `门 ${index + 1}` : `窗 ${index + 1}`;
+
+  return (
+    <div style={{
+      marginBottom: 6, border: '1px solid var(--color-border)',
+      borderRadius: 'var(--radius-sm)', overflow: 'hidden',
+    }}>
+      {/* Title row */}
+      <div
+        onClick={() => setExpanded(!expanded)}
+        style={{
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          padding: '6px 8px', cursor: 'pointer', fontSize: 12, fontWeight: 500,
+          background: expanded ? 'var(--color-bg-hover)' : 'transparent',
+          color: 'var(--color-text-primary)',
+        }}
+      >
+        <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+          {isDoor ? '🚪' : '🪟'} {label} — {WALL_LABELS[item.wall]}
+        </span>
+        <button
+          onClick={e => { e.stopPropagation(); onRemove(); }}
+          style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-error)', padding: 2 }}
+        >
+          <Trash2 size={12} />
+        </button>
+      </div>
+
+      {/* Expanded fields */}
+      {expanded && (
+        <div style={{ padding: '6px 8px', borderTop: '1px solid var(--color-border)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
+            <label style={{ fontSize: 11, color: 'var(--color-text-tertiary)', width: 36, flexShrink: 0 }}>墙面</label>
+            <select
+              value={item.wall}
+              onChange={e => onUpdate({ wall: e.target.value as DoorWindow['wall'] })}
+              className="input input-sm"
+              style={{ flex: 1 }}
+            >
+              <option value="north">北墙 (顶)</option>
+              <option value="south">南墙 (底)</option>
+              <option value="east">东墙 (右)</option>
+              <option value="west">西墙 (左)</option>
+            </select>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
+            <label style={{ fontSize: 11, color: 'var(--color-text-tertiary)', width: 36, flexShrink: 0 }}>位置</label>
+            <input type="number" value={item.position} onChange={e => onUpdate({ position: Number(e.target.value) })}
+              className="input input-sm input-mono" style={{ flex: 1 }} />
+            <span style={{ fontSize: 10, color: 'var(--color-text-tertiary)' }}>mm</span>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
+            <label style={{ fontSize: 11, color: 'var(--color-text-tertiary)', width: 36, flexShrink: 0 }}>宽度</label>
+            <input type="number" value={item.width} onChange={e => onUpdate({ width: Number(e.target.value) })}
+              className="input input-sm input-mono" style={{ flex: 1 }} />
+            <span style={{ fontSize: 10, color: 'var(--color-text-tertiary)' }}>mm</span>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

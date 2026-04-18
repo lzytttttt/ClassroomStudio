@@ -14,6 +14,9 @@ interface UIState {
   // Modal state
   activeModal: string | null;
 
+  // Cross-view highlight (topology ↔ 2D linking)
+  highlightedComponentId: string | null;
+
   // Toast notifications
   toasts: Toast[];
 
@@ -23,6 +26,7 @@ interface UIState {
   setDraggingAsset: (assetId: string | null) => void;
   setActiveTool: (tool: 'select' | 'pan' | 'zoom') => void;
   setActiveModal: (modal: string | null) => void;
+  setHighlightedComponent: (id: string | null) => void;
   addToast: (toast: Omit<Toast, 'id'>) => void;
   removeToast: (id: string) => void;
 }
@@ -45,6 +49,7 @@ export const useUIStore = create<UIState>()((set) => ({
   showStatusBar: true,
   activeTool: 'select',
   activeModal: null,
+  highlightedComponentId: null,
   toasts: [],
 
   toggleLeftSidebar: () => set((s) => ({ leftSidebarOpen: !s.leftSidebarOpen })),
@@ -55,6 +60,13 @@ export const useUIStore = create<UIState>()((set) => ({
   }),
   setActiveTool: (tool) => set({ activeTool: tool }),
   setActiveModal: (modal) => set({ activeModal: modal }),
+  setHighlightedComponent: (id) => {
+    set({ highlightedComponentId: id });
+    // Auto-clear after 3s
+    if (id) {
+      setTimeout(() => set((s) => s.highlightedComponentId === id ? { highlightedComponentId: null } : {}), 3000);
+    }
+  },
   addToast: (toast) => {
     const id = `toast-${++toastId}`;
     set((s) => ({ toasts: [...s.toasts, { ...toast, id }] }));

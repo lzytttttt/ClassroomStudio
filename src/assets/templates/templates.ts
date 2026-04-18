@@ -84,7 +84,7 @@ export function createNormalClassroom(): Scene {
     viewState: {
       activeView: '2d',
       canvas2d: { panX: 0, panY: 0, zoom: 1, showGrid: true, gridSize: 500, snapToGrid: true },
-      topology: { layout: 'hierarchical', filterTypes: ['network', 'av', 'control', 'power'], highlightedNodeId: null },
+      topology: { layout: 'hierarchical', filterTypes: ['network', 'av', 'control', 'power'], highlightedNodeId: null, lineStyle: 'bezier' },
       selectedIds: [],
     },
   };
@@ -240,7 +240,7 @@ export function createRecordingClassroom(): Scene {
     viewState: {
       activeView: '2d',
       canvas2d: { panX: 0, panY: 0, zoom: 1, showGrid: true, gridSize: 500, snapToGrid: true },
-      topology: { layout: 'hierarchical', filterTypes: ['network', 'av', 'control', 'power'], highlightedNodeId: null },
+      topology: { layout: 'hierarchical', filterTypes: ['network', 'av', 'control', 'power'], highlightedNodeId: null, lineStyle: 'bezier' },
       selectedIds: [],
     },
   };
@@ -365,7 +365,7 @@ export function createComputerClassroom(): Scene {
     viewState: {
       activeView: '2d',
       canvas2d: { panX: 0, panY: 0, zoom: 0.8, showGrid: true, gridSize: 500, snapToGrid: true },
-      topology: { layout: 'hierarchical', filterTypes: ['network', 'av', 'control', 'power'], highlightedNodeId: null },
+      topology: { layout: 'hierarchical', filterTypes: ['network', 'av', 'control', 'power'], highlightedNodeId: null, lineStyle: 'bezier' },
       selectedIds: [],
     },
   };

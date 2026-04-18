@@ -6,22 +6,33 @@ import {
   Background,
   useNodesState,
   useEdgesState,
-  addEdge,
-  Connection as FlowConnection,
+  type Connection as FlowConnection,
   ReactFlowProvider,
-  NodeChange,
-  applyNodeChanges,
-  EdgeChange,
-  applyEdgeChanges,
+  type NodeChange,
+  type EdgeChange,
+  type Node,
+  type Edge,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import { useSceneStore } from '@/store/sceneStore';
-import { DeviceNode } from './nodes/DeviceNode';
-import { ExternalNodeNode } from './nodes/ExternalNodeNode';
+import { DeviceNode, type DeviceNodeType } from './nodes/DeviceNode';
+import { ExternalNodeNode, type ExternalNodeType } from './nodes/ExternalNodeNode';
 import { SignalEdge } from './edges/SignalEdge';
 import { TopologyToolbar } from './TopologyToolbar';
 import { getAssetById } from '@/features/component-library/assets-data';
 import { generateId } from '@/shared/utils/id';
+import { useUIStore } from '@/store/uiStore';
+
+// Union type for all node types in the topology
+type AppNode = DeviceNodeType | ExternalNodeType;
+
+// Edge type
+type AppEdge = Edge<{
+  type: string;
+  label: string;
+  lineStyle: 'bezier' | 'step';
+  bandwidth: string;
+}>;
 
 const nodeTypes = {
   device: DeviceNode,
@@ -35,14 +46,15 @@ const edgeTypes = {
 function TopologyFlow() {
   const { scene, setScene, selectComponents, clearSelection, addConnection } = useSceneStore();
   const { filterTypes, lineStyle } = scene.viewState.topology;
+  const { setHighlightedComponent } = useUIStore();
 
-  const [nodes, setNodes, onNodesChange] = useNodesState([]);
-  const [edges, setEdges, onEdgesChange] = useEdgesState([]);
+  const [nodes, setNodes, onNodesChange] = useNodesState<AppNode>([]);
+  const [edges, setEdges, onEdgesChange] = useEdgesState<AppEdge>([]);
 
   // Sync scene data to Flow state
   useEffect(() => {
     // 1. Convert SceneComponents to Nodes (Filtering out non-electrical/non-network by checking properties/category)
-    const deviceNodes = scene.components
+    const deviceNodes: DeviceNodeType[] = scene.components
       .filter((comp) => {
         const asset = getAssetById(comp.assetId);
         // Exclude simple furniture that doesn't belong in topology
@@ -53,15 +65,15 @@ function TopologyFlow() {
       })
       .map((comp) => ({
         id: comp.id,
-        type: 'device',
+        type: 'device' as const,
         position: comp.topologyPosition || { x: comp.position.x / 10, y: comp.position.y / 10 },
         data: { component: comp },
       }));
 
     // 2. Convert ExternalNodes to Nodes
-    const extNodes = scene.externalNodes.map((ext) => ({
+    const extNodes: ExternalNodeType[] = scene.externalNodes.map((ext) => ({
       id: ext.id,
-      type: 'external',
+      type: 'external' as const,
       position: ext.position,
       data: { node: ext },
     }));
@@ -71,20 +83,20 @@ function TopologyFlow() {
 
   useEffect(() => {
     // 3. Convert Connections to Edges, filtering by filterTypes
-    const flowEdges = scene.connections
+    const flowEdges: AppEdge[] = scene.connections
       .filter((c) => filterTypes.includes(c.type))
       .map((c) => ({
         id: c.id,
         source: c.sourceId,
         target: c.targetId,
-        type: 'signal', // Uses custom edge
+        type: 'signal',
         data: {
           type: c.type,
           label: c.label,
           lineStyle: lineStyle,
           bandwidth: c.bandwidth,
         },
-        sourceHandle: c.type, // Map connection type to handle IDs
+        sourceHandle: c.type,
         targetHandle: c.type,
       }));
 
@@ -94,8 +106,6 @@ function TopologyFlow() {
   // Handle Graph Logic updates
   const onConnect = useCallback(
     (params: FlowConnection) => {
-      // Flow connection created. Let's create a Scene connection.
-      // E.g., user connects "network" Handle of Switch to "network" Handle of AP.
       const handleType = params.targetHandle || params.sourceHandle || 'network';
       
       const newConnection = {
@@ -115,13 +125,12 @@ function TopologyFlow() {
   );
 
   const handleNodesChange = useCallback(
-    (changes: NodeChange[]) => {
-      setNodes((nds) => applyNodeChanges(changes, nds));
+    (changes: NodeChange<AppNode>[]) => {
+      onNodesChange(changes);
       
       // Sync moved positions back to sceneStore if it's a dragging change
       const draggedChange = changes.find(c => c.type === 'position' && c.dragging === false);
       if (draggedChange && draggedChange.type === 'position' && draggedChange.position) {
-         // Find if it was a component or external node
          const compNode = scene.components.find(c => c.id === draggedChange.id);
          if (compNode) {
            setScene({
@@ -147,13 +156,12 @@ function TopologyFlow() {
          }
       }
     },
-    [scene, setNodes, setScene]
+    [scene, onNodesChange, setScene]
   );
 
   const handleEdgesChange = useCallback(
-    (changes: EdgeChange[]) => {
-      setEdges((eds) => applyEdgeChanges(changes, eds));
-      // if edges are removed
+    (changes: EdgeChange<AppEdge>[]) => {
+      onEdgesChange(changes);
       const removedEdges = changes.filter(c => c.type === 'remove');
       if (removedEdges.length > 0) {
         const removedIds = removedEdges.map(c => c.id);
@@ -163,16 +171,21 @@ function TopologyFlow() {
         });
       }
     },
-    [scene, setEdges, setScene]
+    [scene, onEdgesChange, setScene]
   );
 
   return (
-    <ReactFlow
+    <ReactFlow<AppNode, AppEdge>
       nodes={nodes}
       edges={edges}
       onNodesChange={handleNodesChange}
       onEdgesChange={handleEdgesChange}
       onConnect={onConnect}
+      onNodeClick={(_, node) => {
+        // Set highlight for cross-view linking
+        setHighlightedComponent(node.id);
+        selectComponents([node.id]);
+      }}
       nodeTypes={nodeTypes}
       edgeTypes={edgeTypes}
       fitView
