@@ -63,8 +63,8 @@ export function getIsoColors(baseHex: string) {
   // Advanced Glass/Tech Shading using color-mix for modern browsers
   // We use #0f172a (deep slate) to create "cool" shaded shadows rather than muddy black
   return {
-    top: `color-mix(in srgb, ${baseHex} 85%, white)`,          // Lit by top light naturally
-    left: `color-mix(in srgb, ${baseHex} 95%, #0f172a)`,       // Mid tone (purest color)
-    right: `color-mix(in srgb, ${baseHex} 65%, #0f172a)`       // Deep cool shadow
+    top: `color-mix(in srgb, ${baseHex} 40%, white)`,           // Very lit top surface
+    left: `color-mix(in srgb, ${baseHex} 95%, #0f172a)`,       // Natural front-left face
+    right: `color-mix(in srgb, ${baseHex} 60%, #0f172a)`       // Deep shadowed front-right face
   };
 }

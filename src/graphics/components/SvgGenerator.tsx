@@ -82,7 +82,7 @@ export function Asset25DNodeGroup({
     }
 
     return { ...s, x, y, z, width, depth, height };
-  }).sort((a, b) => (a.z - a.y - a.x) - (b.z - b.y - b.x));
+  }).sort((a, b) => (a.x + a.y + a.z) - (b.x + b.y + b.z));
 
   return (
     <>

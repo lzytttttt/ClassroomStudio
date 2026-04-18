@@ -9,117 +9,174 @@ export function registerGeometry(assetId: string, def: Omit<AssetGeometry, 'asse
 
 // ===================== 桌椅家具 =====================
 registerGeometry('asset-desk-student', {
-  shapes: [ // 带有书斗的学生桌
-    { id: 'leg-bl', type: 'box', x: -0.4, y: 0.4, z: 0, width: 0.05, depth: 0.05, height: 0.95, color: '#94A3B8' },
-    { id: 'leg-tl', type: 'box', x: -0.4, y: -0.4, z: 0, width: 0.05, depth: 0.05, height: 0.95, color: '#94A3B8' },
-    { id: 'leg-br', type: 'box', x: 0.4, y: 0.4, z: 0, width: 0.05, depth: 0.05, height: 0.95, color: '#94A3B8' },
-    { id: 'leg-tr', type: 'box', x: 0.4, y: -0.4, z: 0, width: 0.05, depth: 0.05, height: 0.95, color: '#94A3B8' },
-    { id: 'shelf', type: 'box', x: 0, y: 0, z: 0.7, width: 0.9, depth: 0.8, height: 0.1, color: '#64748B' },
-    { id: 'desktop', type: 'box', x: 0, y: 0, z: 0.95, width: 1.0, depth: 1.0, height: 0.05, color: '#D97706' },
+  shapes: [ 
+    { id: 'leg-1', type: 'box', x: -0.4, y: 0.4, z: 0, width: 0.05, depth: 0.05, height: 0.75, color: '#475569' },
+    { id: 'leg-2', type: 'box', x: 0.4, y: 0.4, z: 0, width: 0.05, depth: 0.05, height: 0.75, color: '#475569' },
+    { id: 'leg-3', type: 'box', x: -0.4, y: -0.4, z: 0, width: 0.05, depth: 0.05, height: 0.75, color: '#475569' },
+    { id: 'leg-4', type: 'box', x: 0.4, y: -0.4, z: 0, width: 0.05, depth: 0.05, height: 0.75, color: '#475569' },
+    { id: 'shelf', type: 'box', x: 0, y: 0, z: 0.5, width: 0.8, depth: 0.7, height: 0.1, color: '#64748B' },
+    { id: 'desktop', type: 'box', x: 0, y: 0, z: 0.75, width: 1.0, depth: 1.0, height: 0.05, color: '#D4B896' },
+    { id: 'edge', type: 'box', x: 0, y: 0, z: 0.8, width: 1.0, depth: 1.0, height: 0.01, color: '#B8976A' },
   ]
 });
 registerGeometry('asset-chair-student', {
-  shapes: [ // 带椅背的主体
-    { id: 'seat', type: 'box', x: 0, y: -0.1, z: 0.45, width: 0.8, depth: 0.8, height: 0.05, color: '#334155' },
-    { id: 'back', type: 'box', x: 0, y: -0.45, z: 0.5, width: 0.8, depth: 0.05, height: 0.5, color: '#475569' },
-    { id: 'base', type: 'box', x: 0, y: -0.1, z: 0, width: 0.6, depth: 0.6, height: 0.45, color: '#94A3B8' },
+  shapes: [ 
+    { id: 'leg-base', type: 'box', x: 0, y: 0, z: 0, width: 0.5, depth: 0.5, height: 0.05, color: '#475569' },
+    { id: 'stem', type: 'box', x: 0, y: 0, z: 0.05, width: 0.1, depth: 0.1, height: 0.35, color: '#64748B' },
+    { id: 'seat', type: 'box', x: 0, y: 0, z: 0.4, width: 0.8, depth: 0.8, height: 0.08, color: '#334155' },
+    { id: 'back-support', type: 'box', x: 0, y: 0.35, z: 0.48, width: 0.1, depth: 0.1, height: 0.4, color: '#64748B' },
+    { id: 'backrest', type: 'box', x: 0, y: 0.4, z: 0.6, width: 0.7, depth: 0.08, height: 0.4, color: '#475569' },
   ]
 });
 registerGeometry('asset-desk-teacher', {
-  shapes: [ // 讲台带控制面板凹槽
-    { id: 'body', type: 'box', x: 0, y: 0, z: 0, width: 0.95, depth: 0.8, height: 0.85, color: '#1E293B' },
-    { id: 'top', type: 'box', x: 0, y: 0, z: 0.85, width: 1.0, depth: 1.0, height: 0.05, color: '#475569' },
-    { id: 'screen-stand', type: 'box', x: 0, y: 0.3, z: 0.9, width: 0.4, depth: 0.2, height: 0.05, color: '#0F172A' },
-    { id: 'screen', type: 'box', x: 0, y: 0.3, z: 0.95, width: 0.5, depth: 0.05, height: 0.3, color: '#0EA5E9' },
-  ]
-});
-registerGeometry('asset-blackboard', {
-  shapes: [ // 两侧推拉的复合黑板
-    { id: 'board-bg', type: 'box', x: 0, y: 0, z: 0, width: 1.0, depth: 0.1, height: 1.0, color: '#14532D' },
-    { id: 'frame-top', type: 'box', x: 0, y: 0, z: 1.0, width: 1.02, depth: 0.12, height: 0.05, color: '#E2E8F0' },
-    { id: 'frame-bottom', type: 'box', x: 0, y: 0, z: -0.05, width: 1.02, depth: 0.12, height: 0.05, color: '#E2E8F0' },
-  ]
-});
-registerGeometry('asset-cabinet', {
-  shapes: [ // 高柜
-    { id: 'base', type: 'box', x: 0, y: 0, z: 0, width: 1.0, depth: 1.0, height: 0.05, color: '#64748B' },
-    { id: 'body', type: 'box', x: 0, y: 0, z: 0.05, width: 0.95, depth: 0.95, height: 0.95, color: '#94A3B8' },
-    { id: 'door-l', type: 'box', x: -0.25, y: -0.48, z: 0.05, width: 0.45, depth: 0.02, height: 0.9, color: '#F8FAFC' },
-    { id: 'door-r', type: 'box', x: 0.25, y: -0.48, z: 0.05, width: 0.45, depth: 0.02, height: 0.9, color: '#F8FAFC' },
+  shapes: [ 
+    { id: 'body', type: 'box', x: 0, y: 0, z: 0, width: 0.9, depth: 0.8, height: 0.8, color: '#5C4033' },
+    { id: 'drawer-front', type: 'box', x: 0, y: -0.4, z: 0.5, width: 0.8, depth: 0.02, height: 0.2, color: '#4A3428' },
+    { id: 'desktop', type: 'box', x: 0, y: 0, z: 0.8, width: 1.0, depth: 1.0, height: 0.05, color: '#6B4A3A' },
+    { id: 'monitor-base', type: 'box', x: 0.2, y: 0.1, z: 0.85, width: 0.2, depth: 0.2, height: 0.05, color: '#1E293B' },
+    { id: 'monitor-panel', type: 'box', x: 0.2, y: 0.1, z: 0.9, width: 0.5, depth: 0.05, height: 0.3, color: '#0F172A' },
   ]
 });
 
 // ===================== 显示设备 =====================
 registerGeometry('asset-smart-board', {
-  shapes: [ // 包含中间大屏的智慧黑板
-    { id: 'panel', type: 'box', x: 0, y: 0, z: 0, width: 1.0, depth: 0.2, height: 1.0, color: '#0F172A' },
-    { id: 'screen', type: 'box', x: 0, y: -0.11, z: 0.05, width: 0.6, depth: 0.02, height: 0.9, color: '#1D4ED8' },
+  shapes: [ 
+    { id: 'wing-l', type: 'box', x: -0.375, y: 0, z: 0, width: 0.25, depth: 0.1, height: 0.9, color: '#14532D' },
+    { id: 'wing-r', type: 'box', x: 0.375, y: 0, z: 0, width: 0.25, depth: 0.1, height: 0.9, color: '#14532D' },
+    { id: 'center-frame', type: 'box', x: 0, y: 0, z: 0, width: 0.5, depth: 0.15, height: 1.0, color: '#1E293B' },
+    { id: 'screen', type: 'box', x: 0, y: -0.05, z: 0.05, width: 0.46, depth: 0.02, height: 0.85, color: '#1E3A5F' },
+    { id: 'shelf', type: 'box', x: 0, y: 0, z: -0.05, width: 1.0, depth: 0.2, height: 0.05, color: '#94A3B8' },
   ]
 });
 registerGeometry('asset-interactive-screen', {
-  shapes: [ // 独立交互大屏
-    { id: 'bezel', type: 'box', x: 0, y: 0, z: 0, width: 1.0, depth: 0.15, height: 1.0, color: '#1E293B' },
-    { id: 'glass', type: 'box', x: 0, y: -0.08, z: 0.02, width: 0.96, depth: 0.02, height: 0.96, color: '#0EA5E9' },
+  shapes: [ 
+    { id: 'back', type: 'box', x: 0, y: 0.05, z: 0, width: 1.0, depth: 0.1, height: 1.0, color: '#111827' },
+    { id: 'bezel', type: 'box', x: 0, y: 0, z: 0, width: 0.98, depth: 0.05, height: 0.98, color: '#374151' },
+    { id: 'screen', type: 'box', x: 0, y: -0.02, z: 0.02, width: 0.94, depth: 0.01, height: 0.94, color: '#0C4A6E' },
   ]
 });
 registerGeometry('asset-projector', {
-  shapes: [ // 投影机
-    { id: 'body', type: 'box', x: 0, y: 0.1, z: 0, width: 0.8, depth: 0.8, height: 0.4, color: '#F8FAFC' },
-    { id: 'lens', type: 'box', x: 0, y: -0.3, z: 0.1, width: 0.3, depth: 0.1, height: 0.2, color: '#0EA5E9' },
-  ]
-});
-registerGeometry('asset-projection-screen', {
-  shapes: [ // 投影幕布（顶部卷筒 + 垂下幕布）
-    { id: 'roller', type: 'box', x: 0, y: 0, z: 0.9, width: 1.0, depth: 0.15, height: 0.1, color: '#94A3B8' },
-    { id: 'screen', type: 'box', x: 0, y: 0, z: 0, width: 0.9, depth: 0.02, height: 0.9, color: '#F8FAFC' },
+  shapes: [ 
+    { id: 'body', type: 'box', x: 0, y: 0, z: 0, width: 0.8, depth: 0.8, height: 0.4, color: '#E5E7EB' },
+    { id: 'lens-mount', type: 'box', x: -0.2, y: -0.35, z: 0.1, width: 0.3, depth: 0.1, height: 0.2, color: '#9CA3AF' },
+    { id: 'lens', type: 'box', x: -0.2, y: -0.42, z: 0.15, width: 0.15, depth: 0.05, height: 0.1, color: '#1F2937' },
+    { id: 'vent', type: 'box', x: 0.3, y: 0, z: 0.1, width: 0.1, depth: 0.6, height: 0.2, color: '#9CA3AF' },
   ]
 });
 
-// ===================== 音视频设备 =====================
-registerGeometry('asset-camera-ptz', {
+// ===================== 新增教育设备 (Task 2) =====================
+registerGeometry('asset-whiteboard-pen', {
   shapes: [
-    { id: 'mount', type: 'box', x: 0, y: 0, z: 0, width: 0.6, depth: 0.6, height: 0.2, color: '#475569' },
-    { id: 'sphere-sim', type: 'box', x: 0, y: 0, z: 0.2, width: 0.4, depth: 0.4, height: 0.4, color: '#1E293B' },
-    { id: 'lens', type: 'box', x: 0, y: -0.15, z: 0.3, width: 0.2, depth: 0.15, height: 0.2, color: '#0EA5E9' },
+    { id: 'barrel', type: 'box', x: 0, y: 0, z: 0.2, width: 1.0, depth: 0.2, height: 0.2, color: '#E5E7EB' },
+    { id: 'tip', type: 'box', x: -0.45, y: 0, z: 0.2, width: 0.1, depth: 0.15, height: 0.15, color: '#6B7280' },
+    { id: 'button', type: 'box', x: 0.1, y: 0, z: 0.3, width: 0.2, depth: 0.1, height: 0.05, color: '#8B5CF6' },
   ]
 });
-registerGeometry('asset-camera-fixed', {
-  shapes: [ // 枪机
-    { id: 'base', type: 'box', x: 0, y: 0.3, z: 0, width: 0.4, depth: 0.2, height: 0.8, color: '#64748B' },
-    { id: 'barrel', type: 'box', x: 0, y: -0.1, z: 0.2, width: 0.3, depth: 0.8, height: 0.3, color: '#1E293B' },
-    { id: 'lens', type: 'box', x: 0, y: -0.5, z: 0.2, width: 0.25, depth: 0.05, height: 0.25, color: '#EF4444' }, // Red glowing eye
-  ]
-});
-registerGeometry('asset-recording-host', {
+registerGeometry('asset-clicker', {
   shapes: [
-    { id: 'case', type: 'box', x: 0, y: 0, z: 0, width: 1.0, depth: 0.8, height: 0.3, color: '#0F172A' },
-    { id: 'panel', type: 'box', x: 0, y: -0.4, z: 0.05, width: 0.9, depth: 0.02, height: 0.2, color: '#334155' },
-    { id: 'light', type: 'box', x: -0.3, y: -0.41, z: 0.1, width: 0.05, depth: 0.01, height: 0.05, color: '#10B981' },
+    { id: 'body', type: 'box', x: 0, y: 0, z: 0, width: 0.8, depth: 1.0, height: 0.2, color: '#F3F4F6' },
+    { id: 'btn-1', type: 'box', x: -0.2, y: -0.2, z: 0.2, width: 0.3, depth: 0.3, height: 0.05, color: '#EF4444' },
+    { id: 'btn-2', type: 'box', x: 0.2, y: -0.2, z: 0.2, width: 0.3, depth: 0.3, height: 0.05, color: '#3B82F6' },
+    { id: 'btn-3', type: 'box', x: -0.2, y: 0.2, z: 0.2, width: 0.3, depth: 0.3, height: 0.05, color: '#F59E0B' },
+    { id: 'btn-4', type: 'box', x: 0.2, y: 0.2, z: 0.2, width: 0.3, depth: 0.3, height: 0.05, color: '#10B981' },
   ]
 });
-registerGeometry('asset-speaker', {
-  shapes: [ // 音响带网口倒角感
-    { id: 'box', type: 'box', x: 0, y: 0, z: 0, width: 0.8, depth: 0.8, height: 1.0, color: '#1E293B' },
-    { id: 'grill', type: 'box', x: 0, y: -0.41, z: 0.1, width: 0.7, depth: 0.02, height: 0.8, color: '#0F172A' },
+registerGeometry('asset-tablet', {
+  shapes: [
+    { id: 'case', type: 'box', x: 0, y: 0, z: 0, width: 1.0, depth: 1.0, height: 0.05, color: '#111827' },
+    { id: 'screen', type: 'box', x: 0, y: 0, z: 0.05, width: 0.92, depth: 0.92, height: 0.01, color: '#1E3A5F' },
   ]
 });
-registerGeometry('asset-microphone', {
-  shapes: [ // 麦桌面底座+杆
-    { id: 'base', type: 'box', x: 0, y: 0, z: 0, width: 0.6, depth: 0.6, height: 0.1, color: '#334155' },
-    { id: 'stem', type: 'box', x: 0, y: -0.1, z: 0.1, width: 0.05, depth: 0.05, height: 0.7, color: '#94A3B8' },
-    { id: 'mic', type: 'box', x: 0, y: -0.15, z: 0.8, width: 0.1, depth: 0.1, height: 0.2, color: '#1E293B' },
+registerGeometry('asset-3d-printer', {
+  shapes: [
+    { id: 'base', type: 'box', x: 0, y: 0, z: 0, width: 1.0, depth: 1.0, height: 0.15, color: '#1F2937' },
+    { id: 'post-l', type: 'box', x: -0.4, y: 0, z: 0.15, width: 0.1, depth: 0.1, height: 0.8, color: '#374151' },
+    { id: 'post-r', type: 'box', x: 0.4, y: 0, z: 0.15, width: 0.1, depth: 0.1, height: 0.8, color: '#374151' },
+    { id: 'crossbar', type: 'box', x: 0, y: 0, z: 0.85, width: 1.0, depth: 0.1, height: 0.1, color: '#374151' },
+    { id: 'bed', type: 'box', x: 0, y: 0, z: 0.2, width: 0.7, depth: 0.7, height: 0.05, color: '#4B5563' },
+    { id: 'head', type: 'box', x: 0, y: 0, z: 0.5, width: 0.2, depth: 0.2, height: 0.2, color: '#F97316' },
+  ]
+});
+registerGeometry('asset-document-camera', {
+  shapes: [
+    { id: 'base', type: 'box', x: 0, y: 0.3, z: 0, width: 0.6, depth: 0.4, height: 0.1, color: '#D1D5DB' },
+    { id: 'arm-v', type: 'box', x: 0, y: 0.4, z: 0.1, width: 0.1, depth: 0.1, height: 0.8, color: '#94A3B8' },
+    { id: 'arm-h', type: 'box', x: 0, y: 0.1, z: 0.8, width: 0.1, depth: 0.6, height: 0.1, color: '#94A3B8' },
+    { id: 'head', type: 'box', x: 0, y: -0.2, z: 0.75, width: 0.2, depth: 0.3, height: 0.15, color: '#1F2937' },
+    { id: 'lens', type: 'box', x: 0, y: -0.2, z: 0.7, width: 0.1, depth: 0.1, height: 0.05, color: '#14B8A6' },
+  ]
+});
+registerGeometry('asset-led-panel', {
+  shapes: [
+    { id: 'frame', type: 'box', x: 0, y: 0, z: 0.95, width: 1.0, depth: 0.4, height: 0.05, color: '#FBBF24' },
+    { id: 'panel', type: 'box', x: 0, y: 0, z: 0.92, width: 0.95, depth: 0.35, height: 0.03, color: '#FEF9C3' },
+  ]
+});
+registerGeometry('asset-curtain-motor', {
+  shapes: [
+    { id: 'rail', type: 'box', x: 0, y: 0, z: 0.95, width: 1.0, depth: 0.05, height: 0.05, color: '#94A3B8' },
+    { id: 'fabric', type: 'box', x: 0, y: 0.02, z: 0, width: 0.98, depth: 0.02, height: 0.95, color: '#DDD6FE' },
+    { id: 'motor', type: 'box', x: 0.45, y: 0, z: 0.8, width: 0.1, depth: 0.1, height: 0.2, color: '#A78BFA' },
+  ]
+});
+registerGeometry('asset-central-control', {
+  shapes: [
+    { id: 'case', type: 'box', x: 0, y: 0, z: 0, width: 1.0, depth: 0.8, height: 0.2, color: '#1E293B' },
+    { id: 'face', type: 'box', x: 0, y: -0.38, z: 0.05, width: 0.9, depth: 0.05, height: 0.15, color: '#0F172A' },
+    { id: 'led1', type: 'box', x: -0.3, y: -0.4, z: 0.1, width: 0.05, depth: 0.02, height: 0.05, color: '#22C55E' },
+    { id: 'led2', type: 'box', x: -0.2, y: -0.4, z: 0.1, width: 0.05, depth: 0.02, height: 0.05, color: '#3B82F6' },
+    { id: 'led3', type: 'box', x: -0.1, y: -0.4, z: 0.1, width: 0.05, depth: 0.02, height: 0.05, color: '#F59E0B' },
+  ]
+});
+registerGeometry('asset-ups', {
+  shapes: [
+    { id: 'tower', type: 'box', x: 0, y: 0, z: 0, width: 0.6, depth: 0.8, height: 1.0, color: '#1E293B' },
+    { id: 'screen', type: 'box', x: 0, y: -0.38, z: 0.7, width: 0.4, depth: 0.05, height: 0.2, color: '#022C22' },
+    { id: 'vent', type: 'box', x: 0, y: -0.38, z: 0.2, width: 0.4, depth: 0.02, height: 0.3, color: '#0F172A' },
+  ]
+});
+registerGeometry('asset-info-display', {
+  shapes: [
+    { id: 'stand', type: 'box', x: 0, y: 0, z: 0, width: 0.4, depth: 0.3, height: 0.1, color: '#334155' },
+    { id: 'post', type: 'box', x: 0, y: 0.1, z: 0.1, width: 0.1, depth: 0.1, height: 0.9, color: '#475569' },
+    { id: 'frame', type: 'box', x: 0, y: 0, z: 0.6, width: 1.0, depth: 0.1, height: 0.8, color: '#111827' },
+    { id: 'screen', type: 'box', x: 0, y: -0.05, z: 0.65, width: 0.94, depth: 0.02, height: 0.7, color: '#0284C7' },
+  ]
+});
+registerGeometry('asset-class-sign', {
+  shapes: [
+    { id: 'mount', type: 'box', x: 0, y: 0.05, z: 0.5, width: 0.6, depth: 0.05, height: 0.4, color: '#2563EB' },
+    { id: 'tablet', type: 'box', x: 0, y: -0.02, z: 0.5, width: 0.5, depth: 0.05, height: 0.3, color: '#0F172A' },
+    { id: 'screen', type: 'box', x: 0, y: -0.05, z: 0.55, width: 0.46, depth: 0.01, height: 0.2, color: '#1E3A5F' },
+  ]
+});
+registerGeometry('asset-air-purifier', {
+  shapes: [
+    { id: 'body', type: 'box', x: 0, y: 0, z: 0, width: 0.8, depth: 0.8, height: 1.0, color: '#F0FDFA' },
+    { id: 'grill', type: 'box', x: 0, y: 0, z: 0.95, width: 0.7, depth: 0.7, height: 0.05, color: '#06B6D4' },
+    { id: 'panel', type: 'box', x: 0, y: -0.38, z: 0.8, width: 0.4, depth: 0.05, height: 0.1, color: '#ECFDF5' },
   ]
 });
 
-// ===================== 网络设备 =====================
+// ===================== 其余核心资产精修 (Task 3) =====================
 registerGeometry('asset-switch', {
   shapes: [
-    { id: 'case', type: 'box', x: 0, y: 0, z: 0, width: 1.0, depth: 0.6, height: 0.3, color: '#0284C7' },
-    { id: 'ports-row', type: 'box', x: 0, y: -0.31, z: 0.05, width: 0.8, depth: 0.02, height: 0.15, color: '#0F172A' },
+    { id: 'chassis', type: 'box', x: 0, y: 0, z: 0, width: 1.0, depth: 0.6, height: 0.2, color: '#1E293B' },
+    { id: 'port-area', type: 'box', x: 0, y: -0.28, z: 0.05, width: 0.9, depth: 0.05, height: 0.1, color: '#0F172A' },
+    { id: 'led-1', type: 'box', x: -0.4, y: -0.3, z: 0.08, width: 0.02, depth: 0.02, height: 0.05, color: '#22C55E' },
+    { id: 'led-2', type: 'box', x: -0.35, y: -0.3, z: 0.08, width: 0.02, depth: 0.02, height: 0.05, color: '#22C55E' },
+  ]
+});
+registerGeometry('asset-camera-ptz', {
+  shapes: [
+    { id: 'base', type: 'box', x: 0, y: 0, z: 0, width: 0.6, depth: 0.6, height: 0.1, color: '#E5E7EB' },
+    { id: 'body', type: 'box', x: 0, y: 0, z: 0.1, width: 0.4, depth: 0.4, height: 0.3, color: '#D1D5DB' },
+    { id: 'lens-housing', type: 'box', x: 0, y: -0.1, z: 0.2, width: 0.25, depth: 0.25, height: 0.2, color: '#1F2937' },
+    { id: 'lens', type: 'box', x: 0, y: -0.2, z: 0.25, width: 0.1, depth: 0.1, height: 0.1, color: '#0891B2' },
   ]
 });
 registerGeometry('asset-ap', {
-  shapes: [ // 吸顶 AP
+  shapes: [
     { id: 'base', type: 'box', x: 0, y: 0, z: 0.8, width: 0.8, depth: 0.8, height: 0.2, color: '#F8FAFC' },
     { id: 'ring', type: 'box', x: 0, y: 0, z: 0.75, width: 0.5, depth: 0.5, height: 0.05, color: '#10B981' }, // emerald glow
   ]
