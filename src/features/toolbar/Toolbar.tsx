@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useSceneStore } from '@/store/sceneStore';
 import { useUIStore } from '@/store/uiStore';
@@ -6,12 +7,13 @@ import {
   ArrowLeft, Save, Download, MousePointer2, Hand, Undo2, Redo2,
   Copy, Trash2, Grid3x3, Magnet, Play, ImageDown, Camera,
   PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen,
-  GraduationCap, Cable,
+  GraduationCap, Cable, HelpCircle, X
 } from 'lucide-react';
 import { canvas2dScreenshotRef } from '@/engine/canvas2d/Canvas2D';
 
 export default function Toolbar({ saveStatus, onSaveStatusChange }: { saveStatus: 'saved' | 'saving' | 'unsaved'; onSaveStatusChange: (s: 'saved' | 'saving' | 'unsaved') => void }) {
   const navigate = useNavigate();
+  const [showHelp, setShowHelp] = useState(false);
   const { scene, removeComponents, copySelected, duplicateComponents, toggleGrid, toggleSnap } = useSceneStore();
   const { undo, redo, pastStates, futureStates } = useSceneStore.temporal.getState();
   const canUndo = useSceneStore(state => useSceneStore.temporal.getState().pastStates.length > 0);
@@ -142,6 +144,9 @@ export default function Toolbar({ saveStatus, onSaveStatusChange }: { saveStatus
       </button>
 
       {/* Right Actions */}
+      <button onClick={() => setShowHelp(true)} style={btnBase} title="操作帮助">
+        <HelpCircle size={16} />
+      </button>
       <button onClick={toggleLeftSidebar} style={btnBase} title="切换组件库">
         {leftSidebarOpen ? <PanelLeftClose size={16} /> : <PanelLeftOpen size={16} />}
       </button>
@@ -202,6 +207,88 @@ export default function Toolbar({ saveStatus, onSaveStatusChange }: { saveStatus
         }} />
         {saveStatus === 'saved' ? '已保存' : saveStatus === 'saving' ? '保存中...' : '未保存'}
       </div>
+
+      {/* Help Modal */}
+      {showHelp && (
+        <>
+          <div 
+            style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(15, 23, 42, 0.4)', zIndex: 9998, backdropFilter: 'blur(2px)' }} 
+            onClick={() => setShowHelp(false)} 
+          />
+          <div style={{
+            position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%, -50%)',
+            background: 'var(--color-bg-panel)', padding: 24, borderRadius: 'var(--radius-lg)',
+            boxShadow: 'var(--shadow-lg), 0 0 0 1px var(--color-border)',
+            zIndex: 9999, width: 450, maxWidth: '90vw', color: 'var(--color-text-primary)'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+              <h2 style={{ fontSize: 18, fontWeight: 600, margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
+                <HelpCircle size={20} color="var(--color-primary)" />
+                操作指南
+              </h2>
+              <button 
+                onClick={() => setShowHelp(false)} 
+                style={{ ...btnBase, padding: 4 }}
+              >
+                <X size={18} />
+              </button>
+            </div>
+            
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12, fontSize: 13, lineHeight: 1.6 }}>
+              <div style={{ padding: 12, background: 'var(--color-bg-app)', borderRadius: 'var(--radius-sm)' }}>
+                <strong>基础操作</strong>
+                <ul style={{ margin: '4px 0 0 0', paddingLeft: 20, color: 'var(--color-text-secondary)' }}>
+                  <li>从左侧组件库 <strong>拖出组件</strong> 或双击添加到画布上方</li>
+                  <li>选中组件后，拖拽调整位置；在右侧属性面板调整方向与缩放</li>
+                  <li>按住鼠标左键即可 <strong>框选多个设备</strong>，支持统一对齐和分布</li>
+                </ul>
+              </div>
+              
+              <div style={{ padding: 12, background: 'var(--color-bg-app)', borderRadius: 'var(--radius-sm)' }}>
+                <strong>门窗控制</strong>
+                <ul style={{ margin: '4px 0 0 0', paddingLeft: 20, color: 'var(--color-text-secondary)' }}>
+                  <li>在 2D 视图下，门窗周围会有隐形的响应区域</li>
+                  <li>直接 <strong>拖拽门或窗户</strong>，它会受到防溢出保护，仅沿着自身所在的墙壁边缘滑动</li>
+                </ul>
+              </div>
+
+              <div style={{ padding: 12, background: 'var(--color-bg-app)', borderRadius: 'var(--radius-sm)' }}>
+                <strong>拓扑连线</strong>
+                <ul style={{ margin: '4px 0 0 0', paddingLeft: 20, color: 'var(--color-text-secondary)' }}>
+                  <li>点击顶部 <code>连线工具 (C)</code> 或按快捷键开启</li>
+                  <li>分两次点击要连接的起始设备和目标设备，即可完成接线</li>
+                  <li>使用 <code>选择工具 (V)</code> 返回常规拖拽模式</li>
+                </ul>
+              </div>
+
+              <div style={{ padding: 12, background: 'var(--color-bg-app)', borderRadius: 'var(--radius-sm)' }}>
+                <strong>常用快捷键</strong>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4px 8px', margin: '4px 0 0 0', color: 'var(--color-text-secondary)' }}>
+                  <div><kbd style={kbdStyle}>V</kbd> 选择工具</div>
+                  <div><kbd style={kbdStyle}>C</kbd> 连线工具</div>
+                  <div><kbd style={kbdStyle}>H</kbd> 平移(拖拽画布)</div>
+                  <div><kbd style={kbdStyle}>Delete</kbd> 删除选中</div>
+                  <div><kbd style={kbdStyle}>Ctrl+C/V</kbd> 复制/粘贴</div>
+                  <div><kbd style={kbdStyle}>Ctrl+D</kbd> 原地复制</div>
+                  <div><kbd style={kbdStyle}>Ctrl+Z/Y</kbd> 撤销/重做</div>
+                  <div><kbd style={kbdStyle}>Ctrl+G</kbd> 编组组件</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 }
+
+const kbdStyle: React.CSSProperties = {
+  background: 'var(--color-bg-toolbar)',
+  border: '1px solid var(--color-border)',
+  borderRadius: 3,
+  padding: '1px 4px',
+  fontSize: 11,
+  boxShadow: '0 1px 0 var(--color-border)',
+  marginRight: 4,
+  fontFamily: 'monospace'
+};

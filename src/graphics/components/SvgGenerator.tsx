@@ -86,6 +86,13 @@ export function Asset25DNodeGroup({
 
   return (
     <>
+      {/* Ground Shadow - A subtle semi-transparent black plane */}
+      <path 
+        d={generateIsoBox(-0.5 * scaleX, -0.5 * scaleY, 0, scaleX, scaleY, 0).top} 
+        fill="rgba(15, 23, 42, 0.15)" 
+        filter="blur(0.01px)"
+      />
+      
       {shapes.map(shape => {
         // Create full path definition
         const originX = shape.x - shape.width / 2;
@@ -96,9 +103,11 @@ export function Asset25DNodeGroup({
         
         return (
           <g key={shape.id} opacity={shape.opacity ?? 1}>
-            <path d={box.left} fill={shading.left} stroke="rgba(0,0,0,0.1)" strokeWidth={0.01} strokeLinejoin="round" />
-            <path d={box.right} fill={shading.right} stroke="rgba(0,0,0,0.1)" strokeWidth={0.01} strokeLinejoin="round" />
-            <path d={box.top} fill={shading.top} stroke="rgba(0,0,0,0.05)" strokeWidth={0.01} strokeLinejoin="round" />
+            <path d={box.left} fill={shading.left} stroke="rgba(0,0,0,0.15)" strokeWidth={0.005} strokeLinejoin="round" />
+            <path d={box.right} fill={shading.right} stroke="rgba(0,0,0,0.15)" strokeWidth={0.005} strokeLinejoin="round" />
+            <path d={box.top} fill={shading.top} stroke="rgba(255,255,255,0.1)" strokeWidth={0.005} strokeLinejoin="round" />
+            {/* Edge highlights for cleaner silhouette */}
+            <path d={box.top} fill="none" stroke="rgba(0,0,0,0.05)" strokeWidth={0.002} />
           </g>
         );
       })}

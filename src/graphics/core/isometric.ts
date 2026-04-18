@@ -62,9 +62,12 @@ export function generateIsoBox(
 export function getIsoColors(baseHex: string) {
   // Advanced Glass/Tech Shading using color-mix for modern browsers
   // We use #0f172a (deep slate) to create "cool" shaded shadows rather than muddy black
+  // Top: Lightest, reflects ceiling light
+  // Left: Mid-tone, main visible surface
+  // Right: Darkest, standard shadow side
   return {
-    top: `color-mix(in srgb, ${baseHex} 40%, white)`,           // Very lit top surface
-    left: `color-mix(in srgb, ${baseHex} 95%, #0f172a)`,       // Natural front-left face
-    right: `color-mix(in srgb, ${baseHex} 60%, #0f172a)`       // Deep shadowed front-right face
+    top: `color-mix(in srgb, ${baseHex} 70%, white)`,           
+    left: `color-mix(in srgb, ${baseHex} 90%, #1e293b)`,       
+    right: `color-mix(in srgb, ${baseHex} 70%, #0f172a)`       
   };
 }

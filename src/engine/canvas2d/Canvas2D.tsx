@@ -31,7 +31,7 @@ export default function Canvas2D() {
 
   const {
     scene, addComponent, updateComponent, selectComponents,
-    addToSelection, clearSelection, setZoom, setPan, addConnection,
+    addToSelection, clearSelection, setZoom, setPan, addConnection, updateRoom
   } = useSceneStore();
   const { activeTool, connectionSource, setConnectionSource, setActiveTool } = useUIStore();
   const [connectTarget, setConnectTarget] = useState<{ id: string; screenX: number; screenY: number } | null>(null);
@@ -355,6 +355,57 @@ export default function Canvas2D() {
   }
 
   // ============================================
+  // Handle Drag End with Auto-Elevation Snap
+  // ============================================
+  const handleDragEnd = useCallback((id: string, x: number, y: number) => {
+    setAlignmentLines([]);
+    
+    // Auto-elevation placement interaction
+    const comp = components.find(c => c.id === id);
+    if (!comp) return;
+    const compAsset = getAssetById(comp.assetId);
+    
+    let newElevation = 0; // Default to floor
+    let newZIndex = comp.zIndex;
+    
+    // If it's a piece of equipment being dropped
+    if (compAsset && !['asset-desk-student', 'asset-chair-student', 'asset-desk-teacher', 'asset-lab-table'].includes(compAsset.id)) {
+      const cw = compAsset.defaultSize.width * comp.scale.x;
+      const ch = compAsset.defaultSize.height * comp.scale.y;
+      
+      const cx = x + cw / 2;
+      const cy = y + ch / 2;
+      
+      // Find if it intersects with any surface (desk, table)
+      const surfaces = components.filter(c => c.id !== id);
+      for (const surface of surfaces) {
+        const sAsset = getAssetById(surface.assetId);
+        if (sAsset && (sAsset.id.includes('desk') || sAsset.id.includes('table'))) {
+          const sw = sAsset.defaultSize.width * surface.scale.x;
+          const sh = sAsset.defaultSize.height * surface.scale.y;
+          const sx1 = surface.position.x;
+          const sy1 = surface.position.y;
+          const sx2 = sx1 + sw;
+          const sy2 = sy1 + sh;
+          
+          if (cx >= sx1 && cx <= sx2 && cy >= sy1 && cy <= sy2) {
+             // Place on top of table
+             newElevation = surface.elevation + 750; // common table height
+             newZIndex = surface.zIndex + 10;
+             break;
+          }
+        }
+      }
+    }
+    
+    updateComponent(id, { 
+      position: { x, y },
+      elevation: newElevation > 0 ? newElevation : comp.elevation,
+      zIndex: newElevation > 0 ? newZIndex : comp.zIndex
+    });
+  }, [components, updateComponent]);
+
+  // ============================================
   // Render
   // ============================================
   return (
@@ -426,85 +477,156 @@ export default function Canvas2D() {
               // Calculate wall position and opening coordinates
               if (item.wall === 'north') {
                 return (
-                  <Group key={item.id}>
+                  <Group 
+                    key={item.id} 
+                    x={posPx} 
+                    y={0} 
+                    draggable 
+                    onDragMove={(e) => { e.target.y(0); }} 
+                    onDragEnd={(e) => {
+                       let newPos = e.target.x() / MM_TO_PX;
+                       newPos = Math.max(0, Math.min(newPos, room.width - item.width));
+                       const items = isDoor ? room.doors : room.windows;
+                       updateRoom({
+                           [isDoor ? 'doors' : 'windows']: items.map(d => d.id === item.id ? { ...d, position: newPos } : d)
+                       });
+                       e.target.x(newPos * MM_TO_PX);
+                    }}
+                    onMouseEnter={(e) => { const stage = e.target.getStage(); if (stage) stage.container().style.cursor = 'grab'; }}
+                    onMouseLeave={(e) => { const stage = e.target.getStage(); if (stage) stage.container().style.cursor = 'default'; }}
+                  >
                     {/* Clear wall segment */}
-                    <Line points={[posPx, 0, posPx + widPx, 0]} stroke={bgColor} strokeWidth={WALL_WIDTH + 2} listening={false} />
+                    <Line points={[0, 0, widPx, 0]} stroke={bgColor} strokeWidth={WALL_WIDTH + 2} listening={false} />
                     {isDoor ? (
-                      // Door: arc swing indicator
                       <Group>
-                        <Line points={[posPx, 0, posPx, widPx * 0.6]} stroke={itemColor} strokeWidth={1.5} opacity={0.5} dash={[3, 3]} listening={false} />
-                        <Line points={[posPx + widPx, 0, posPx + widPx, 0]} stroke={itemColor} strokeWidth={3} listening={false} />
-                        <Line points={[posPx, 0, posPx, 0]} stroke={itemColor} strokeWidth={3} listening={false} />
+                        <Line points={[0, 0, 0, widPx * 0.6]} stroke={itemColor} strokeWidth={1.5} opacity={0.5} dash={[3, 3]} listening={false} />
+                        <Line points={[widPx, 0, widPx, 0]} stroke={itemColor} strokeWidth={3} listening={false} />
+                        <Line points={[0, 0, 0, 0]} stroke={itemColor} strokeWidth={3} listening={false} />
                       </Group>
                     ) : (
-                      // Window: parallel lines
                       <Group>
-                        <Line points={[posPx, -2, posPx + widPx, -2]} stroke={itemColor} strokeWidth={2} listening={false} />
-                        <Line points={[posPx, 2, posPx + widPx, 2]} stroke={itemColor} strokeWidth={2} listening={false} />
-                        <Line points={[posPx, -2, posPx, 2]} stroke={itemColor} strokeWidth={1} listening={false} />
-                        <Line points={[posPx + widPx, -2, posPx + widPx, 2]} stroke={itemColor} strokeWidth={1} listening={false} />
+                        <Line points={[0, -2, widPx, -2]} stroke={itemColor} strokeWidth={2} listening={false} />
+                        <Line points={[0, 2, widPx, 2]} stroke={itemColor} strokeWidth={2} listening={false} />
+                        <Line points={[0, -2, 0, 2]} stroke={itemColor} strokeWidth={1} listening={false} />
+                        <Line points={[widPx, -2, widPx, 2]} stroke={itemColor} strokeWidth={1} listening={false} />
                       </Group>
                     )}
+                    {/* Invisible Hitbox for dragging */}
+                    <Rect x={0} y={-10} width={widPx} height={20} fill="transparent" />
                   </Group>
                 );
               } else if (item.wall === 'south') {
                 return (
-                  <Group key={item.id}>
-                    <Line points={[posPx, roomH, posPx + widPx, roomH]} stroke={bgColor} strokeWidth={WALL_WIDTH + 2} listening={false} />
+                  <Group 
+                    key={item.id} 
+                    x={posPx} 
+                    y={roomH} 
+                    draggable 
+                    onDragMove={(e) => { e.target.y(roomH); }} 
+                    onDragEnd={(e) => {
+                       let newPos = e.target.x() / MM_TO_PX;
+                       newPos = Math.max(0, Math.min(newPos, room.width - item.width));
+                       const items = isDoor ? room.doors : room.windows;
+                       updateRoom({
+                           [isDoor ? 'doors' : 'windows']: items.map(d => d.id === item.id ? { ...d, position: newPos } : d)
+                       });
+                       e.target.x(newPos * MM_TO_PX);
+                    }}
+                    onMouseEnter={(e) => { const stage = e.target.getStage(); if (stage) stage.container().style.cursor = 'grab'; }}
+                    onMouseLeave={(e) => { const stage = e.target.getStage(); if (stage) stage.container().style.cursor = 'default'; }}
+                  >
+                    <Line points={[0, 0, widPx, 0]} stroke={bgColor} strokeWidth={WALL_WIDTH + 2} listening={false} />
                     {isDoor ? (
                       <Group>
-                        <Line points={[posPx, roomH, posPx, roomH - widPx * 0.6]} stroke={itemColor} strokeWidth={1.5} opacity={0.5} dash={[3, 3]} listening={false} />
-                        <Line points={[posPx + widPx, roomH, posPx + widPx, roomH]} stroke={itemColor} strokeWidth={3} listening={false} />
-                        <Line points={[posPx, roomH, posPx, roomH]} stroke={itemColor} strokeWidth={3} listening={false} />
+                        <Line points={[0, 0, 0, -widPx * 0.6]} stroke={itemColor} strokeWidth={1.5} opacity={0.5} dash={[3, 3]} listening={false} />
+                        <Line points={[widPx, 0, widPx, 0]} stroke={itemColor} strokeWidth={3} listening={false} />
+                        <Line points={[0, 0, 0, 0]} stroke={itemColor} strokeWidth={3} listening={false} />
                       </Group>
                     ) : (
                       <Group>
-                        <Line points={[posPx, roomH - 2, posPx + widPx, roomH - 2]} stroke={itemColor} strokeWidth={2} listening={false} />
-                        <Line points={[posPx, roomH + 2, posPx + widPx, roomH + 2]} stroke={itemColor} strokeWidth={2} listening={false} />
-                        <Line points={[posPx, roomH - 2, posPx, roomH + 2]} stroke={itemColor} strokeWidth={1} listening={false} />
-                        <Line points={[posPx + widPx, roomH - 2, posPx + widPx, roomH + 2]} stroke={itemColor} strokeWidth={1} listening={false} />
+                        <Line points={[0, -2, widPx, -2]} stroke={itemColor} strokeWidth={2} listening={false} />
+                        <Line points={[0, 2, widPx, 2]} stroke={itemColor} strokeWidth={2} listening={false} />
+                        <Line points={[0, -2, 0, 2]} stroke={itemColor} strokeWidth={1} listening={false} />
+                        <Line points={[widPx, -2, widPx, 2]} stroke={itemColor} strokeWidth={1} listening={false} />
                       </Group>
                     )}
+                    <Rect x={0} y={-10} width={widPx} height={20} fill="transparent" />
                   </Group>
                 );
               } else if (item.wall === 'east') {
                 return (
-                  <Group key={item.id}>
-                    <Line points={[roomW, posPx, roomW, posPx + widPx]} stroke={bgColor} strokeWidth={WALL_WIDTH + 2} listening={false} />
+                  <Group 
+                    key={item.id} 
+                    x={roomW} 
+                    y={posPx} 
+                    draggable 
+                    onDragMove={(e) => { e.target.x(roomW); }} 
+                    onDragEnd={(e) => {
+                       let newPos = e.target.y() / MM_TO_PX;
+                       newPos = Math.max(0, Math.min(newPos, room.height - item.width));
+                       const items = isDoor ? room.doors : room.windows;
+                       updateRoom({
+                           [isDoor ? 'doors' : 'windows']: items.map(d => d.id === item.id ? { ...d, position: newPos } : d)
+                       });
+                       e.target.y(newPos * MM_TO_PX);
+                    }}
+                    onMouseEnter={(e) => { const stage = e.target.getStage(); if (stage) stage.container().style.cursor = 'grab'; }}
+                    onMouseLeave={(e) => { const stage = e.target.getStage(); if (stage) stage.container().style.cursor = 'default'; }}
+                  >
+                    <Line points={[0, 0, 0, widPx]} stroke={bgColor} strokeWidth={WALL_WIDTH + 2} listening={false} />
                     {isDoor ? (
                       <Group>
-                        <Line points={[roomW, posPx, roomW - widPx * 0.6, posPx]} stroke={itemColor} strokeWidth={1.5} opacity={0.5} dash={[3, 3]} listening={false} />
-                        <Line points={[roomW, posPx + widPx, roomW, posPx + widPx]} stroke={itemColor} strokeWidth={3} listening={false} />
-                        <Line points={[roomW, posPx, roomW, posPx]} stroke={itemColor} strokeWidth={3} listening={false} />
+                        <Line points={[0, 0, -widPx * 0.6, 0]} stroke={itemColor} strokeWidth={1.5} opacity={0.5} dash={[3, 3]} listening={false} />
+                        <Line points={[0, widPx, 0, widPx]} stroke={itemColor} strokeWidth={3} listening={false} />
+                        <Line points={[0, 0, 0, 0]} stroke={itemColor} strokeWidth={3} listening={false} />
                       </Group>
                     ) : (
                       <Group>
-                        <Line points={[roomW - 2, posPx, roomW - 2, posPx + widPx]} stroke={itemColor} strokeWidth={2} listening={false} />
-                        <Line points={[roomW + 2, posPx, roomW + 2, posPx + widPx]} stroke={itemColor} strokeWidth={2} listening={false} />
-                        <Line points={[roomW - 2, posPx, roomW + 2, posPx]} stroke={itemColor} strokeWidth={1} listening={false} />
-                        <Line points={[roomW - 2, posPx + widPx, roomW + 2, posPx + widPx]} stroke={itemColor} strokeWidth={1} listening={false} />
+                        <Line points={[-2, 0, -2, widPx]} stroke={itemColor} strokeWidth={2} listening={false} />
+                        <Line points={[2, 0, 2, widPx]} stroke={itemColor} strokeWidth={2} listening={false} />
+                        <Line points={[-2, 0, 2, 0]} stroke={itemColor} strokeWidth={1} listening={false} />
+                        <Line points={[-2, widPx, 2, widPx]} stroke={itemColor} strokeWidth={1} listening={false} />
                       </Group>
                     )}
+                    <Rect x={-10} y={0} width={20} height={widPx} fill="transparent" />
                   </Group>
                 );
               } else { // west
                 return (
-                  <Group key={item.id}>
-                    <Line points={[0, posPx, 0, posPx + widPx]} stroke={bgColor} strokeWidth={WALL_WIDTH + 2} listening={false} />
+                  <Group 
+                    key={item.id} 
+                    x={0} 
+                    y={posPx} 
+                    draggable 
+                    onDragMove={(e) => { e.target.x(0); }} 
+                    onDragEnd={(e) => {
+                       let newPos = e.target.y() / MM_TO_PX;
+                       newPos = Math.max(0, Math.min(newPos, room.height - item.width));
+                       const items = isDoor ? room.doors : room.windows;
+                       updateRoom({
+                           [isDoor ? 'doors' : 'windows']: items.map(d => d.id === item.id ? { ...d, position: newPos } : d)
+                       });
+                       e.target.y(newPos * MM_TO_PX);
+                    }}
+                    onMouseEnter={(e) => { const stage = e.target.getStage(); if (stage) stage.container().style.cursor = 'grab'; }}
+                    onMouseLeave={(e) => { const stage = e.target.getStage(); if (stage) stage.container().style.cursor = 'default'; }}
+                  >
+                    <Line points={[0, 0, 0, widPx]} stroke={bgColor} strokeWidth={WALL_WIDTH + 2} listening={false} />
                     {isDoor ? (
                       <Group>
-                        <Line points={[0, posPx, widPx * 0.6, posPx]} stroke={itemColor} strokeWidth={1.5} opacity={0.5} dash={[3, 3]} listening={false} />
-                        <Line points={[0, posPx + widPx, 0, posPx + widPx]} stroke={itemColor} strokeWidth={3} listening={false} />
-                        <Line points={[0, posPx, 0, posPx]} stroke={itemColor} strokeWidth={3} listening={false} />
+                        <Line points={[0, 0, widPx * 0.6, 0]} stroke={itemColor} strokeWidth={1.5} opacity={0.5} dash={[3, 3]} listening={false} />
+                        <Line points={[0, widPx, 0, widPx]} stroke={itemColor} strokeWidth={3} listening={false} />
+                        <Line points={[0, 0, 0, 0]} stroke={itemColor} strokeWidth={3} listening={false} />
                       </Group>
                     ) : (
                       <Group>
-                        <Line points={[-2, posPx, -2, posPx + widPx]} stroke={itemColor} strokeWidth={2} listening={false} />
-                        <Line points={[2, posPx, 2, posPx + widPx]} stroke={itemColor} strokeWidth={2} listening={false} />
-                        <Line points={[-2, posPx, 2, posPx]} stroke={itemColor} strokeWidth={1} listening={false} />
-                        <Line points={[-2, posPx + widPx, 2, posPx + widPx]} stroke={itemColor} strokeWidth={1} listening={false} />
+                        <Line points={[-2, 0, -2, widPx]} stroke={itemColor} strokeWidth={2} listening={false} />
+                        <Line points={[2, 0, 2, widPx]} stroke={itemColor} strokeWidth={2} listening={false} />
+                        <Line points={[-2, 0, 2, 0]} stroke={itemColor} strokeWidth={1} listening={false} />
+                        <Line points={[-2, widPx, 2, widPx]} stroke={itemColor} strokeWidth={1} listening={false} />
                       </Group>
                     )}
+                    <Rect x={-10} y={0} width={20} height={widPx} fill="transparent" />
                   </Group>
                 );
               }
@@ -564,10 +686,7 @@ export default function Canvas2D() {
                   }
                 }}
                 onDragMove={(id, x, y, w, h, e) => handleDragMove(id, x, y, w, h, e)}
-                onDragEnd={(id, x, y) => {
-                  setAlignmentLines([]);
-                  updateComponent(id, { position: { x, y } });
-                }}
+                onDragEnd={handleDragEnd}
                 snapToGrid={false}
                 gridSize={canvas2d.gridSize}
               />
@@ -799,8 +918,10 @@ function ComponentNode({ component, isSelected, isConnectSource, onSelect, onDra
   return (
     <Group
       id={`comp-${component.id}`}
-      x={px}
-      y={py}
+      x={px + w / 2}
+      y={py + h / 2}
+      offsetX={w / 2}
+      offsetY={h / 2}
       rotation={component.rotation}
       draggable={!component.locked}
       onClick={(e) => {
@@ -808,11 +929,13 @@ function ComponentNode({ component, isSelected, isConnectSource, onSelect, onDra
         onSelect(component.id, e.evt.shiftKey);
       }}
       onDragMove={(e) => {
-        onDragMove(component.id, e.target.x(), e.target.y(), w, h, e);
+        // e.target.x() is the true coordinate of the anchor point (center due to offsetX/Y)
+        // pass adjusted x, y (top-left) to the upper layer so snapping works reliably with top-left paradigm
+        onDragMove(component.id, e.target.x() - w / 2, e.target.y() - h / 2, w, h, e);
       }}
       onDragEnd={(e) => {
-        const newX = e.target.x() / MM_TO_PX;
-        const newY = e.target.y() / MM_TO_PX;
+        const newX = (e.target.x() - w / 2) / MM_TO_PX;
+        const newY = (e.target.y() - h / 2) / MM_TO_PX;
         onDragEnd(component.id, newX, newY);
       }}
       opacity={component.opacity}

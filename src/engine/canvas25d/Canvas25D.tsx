@@ -131,23 +131,29 @@ export default function Canvas25D() {
             wallThickness={room.wallThickness}
             floorColor={room.floorColor}
             wallColor={room.wallColor}
+            doors={room.doors}
+            windows={room.windows}
           />
 
           {/* Components Rendering */}
           {sortedComponents.map((comp) => {
             const isSelected = selectedIds.includes(comp.id);
             // Project 2D physical coordinates to Iso coordinate space translations
-            // x, y in mm -> meters
-            const originX = comp.position.x / 1000;
-            const originY = comp.position.y / 1000;
+            // x, y in mm -> meters. The position denotes top-left in 2D layout, 
+            // but 2.5D graphics rotate and scale around their center. We must shift to center.
+            const asset = getAssetById(comp.assetId);
+            const wMeters = asset ? (asset.defaultSize.width / 1000) * comp.scale.x : 1;
+            const hMeters = asset ? (asset.defaultSize.height / 1000) * comp.scale.y : 1;
+
+            const originX = (comp.position.x / 1000) + (wMeters / 2);
+            const originY = (comp.position.y / 1000) + (hMeters / 2);
             const originZ = comp.elevation / 1000;
 
             const proj = toIsoPoint(originX, originY, originZ);
 
             // Compute Physical Scaling:
-            const asset = getAssetById(comp.assetId);
-            const scaleX = (asset ? asset.defaultSize.width / 1000 : 1) * comp.scale.x;
-            const scaleY = (asset ? asset.defaultSize.height / 1000 : 1) * comp.scale.y;
+            const scaleX = asset ? asset.defaultSize.width / 1000 * comp.scale.x : comp.scale.x;
+            const scaleY = asset ? asset.defaultSize.height / 1000 * comp.scale.y : comp.scale.y;
             const scaleZ = asset ? asset.defaultSize.depth / 1000 : 1;
 
             return (

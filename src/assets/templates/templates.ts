@@ -37,10 +37,10 @@ export function createNormalClassroom(): Scene {
   const rows = 8;
   const deskW = 600;
   const deskH = 400;
-  const gapX = 300;
-  const gapY = 200;
+  const gapX = 350;
+  const gapY = 400; // Increased spacing between rows
   const startX = (roomW - (cols * deskW + (cols - 1) * gapX)) / 2;
-  const startY = 2000;
+  const startY = 1800; // Move starting row slightly up
 
   for (let r = 0; r < rows; r++) {
     for (let c = 0; c < cols; c++) {
@@ -62,7 +62,7 @@ export function createNormalClassroom(): Scene {
       components.push({
         id: generateId(),
         assetId: 'asset-chair-student',
-        position: { x: x + 90, y: y + deskH + 30 },
+        position: { x: x + 90, y: y + deskH + 180 }, // Increased chair to desk distance
         rotation: 0, scale: { x: 1, y: 1 }, elevation: 0, zIndex: 10 + r * cols + c + 100,
         name: `椅子 ${r + 1}-${c + 1}`,
         properties: { brand: '通用', model: 'KY-01', interfaces: [], power: 0, price: 180, quantity: 1, remark: '', customFields: {} },
@@ -198,9 +198,9 @@ export function createRecordingClassroom(): Scene {
 
   // 4列 × 6排 学生桌椅
   const cols = 4, rows = 6;
-  const deskW = 600, deskH = 400, gapX = 500, gapY = 250;
+  const deskW = 600, deskH = 400, gapX = 600, gapY = 500;
   const startX = (roomW - (cols * deskW + (cols - 1) * gapX)) / 2;
-  const startY = 2200;
+  const startY = 1800;
 
   for (let r = 0; r < rows; r++) {
     for (let c = 0; c < cols; c++) {
@@ -218,7 +218,7 @@ export function createRecordingClassroom(): Scene {
       components.push({
         id: generateId(),
         assetId: 'asset-chair-student',
-        position: { x: x + 90, y: y + deskH + 30 },
+        position: { x: x + 90, y: y + deskH + 180 },
         rotation: 0, scale: { x: 1, y: 1 }, elevation: 0, zIndex: 100 + r * cols + c,
         name: `椅子 ${r + 1}-${c + 1}`,
         properties: { brand: '通用', model: 'KY-01', interfaces: [], power: 0, price: 180, quantity: 1, remark: '', customFields: {} },
@@ -289,8 +289,8 @@ export function createComputerClassroom(): Scene {
 
   // 学生电脑区: 每排6台，5排
   const cols = 6, rows = 5;
-  const startX = 1500, startY = 2200;
-  const spacingX = 1800, spacingY = 1400;
+  const startX = 1600, startY = 2000;
+  const spacingX = 1800, spacingY = 1600;
 
   for (let r = 0; r < rows; r++) {
     for (let c = 0; c < cols; c++) {
