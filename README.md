@@ -1,4 +1,6 @@
-# ClassRoom Studio (Classroom Simulator / Classroom Tycoon)
+# ClassRoom Studio 
+
+by：Lzytttttt
 
 ClassRoom Studio 是一款针对教育场景和智慧教室设计的**高保真、纯前端驱动的专业设计与配置模拟器**。它融合了 "Tycoon"（模拟经营）的交互灵感与工业级 CAD 工具的严谨性，旨在帮助系统集成商、产品经理和方案售前快速搭建、布线并三维可视化演示教室解决方案。
 
