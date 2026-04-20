@@ -2,6 +2,7 @@ import React from 'react';
 import { Handle, Position } from '@xyflow/react';
 import type { Node, NodeProps } from '@xyflow/react';
 import type { ExternalNode } from '@/shared/types';
+import { CONNECTION_COLORS } from '@/shared/types/constants';
 
 export type ExternalNodeData = { node: ExternalNode };
 export type ExternalNodeType = Node<ExternalNodeData, 'external'>;
@@ -18,8 +19,21 @@ const icons: Record<string, string> = {
   'power-grid': '⚡',
 };
 
+/**
+ * ExternalNodeNode — Topology node for external infrastructure (internet, campus network, etc.).
+ * 
+ * Provides handles for all four connection types (network, av, control, power)
+ * so it can be wired to any DeviceNode handle.
+ */
 export function ExternalNodeNode({ data, selected }: NodeProps<ExternalNodeType>) {
   const { node } = data;
+
+  const handleStyle = (color: string): React.CSSProperties => ({
+    background: color,
+    width: 8,
+    height: 8,
+    border: `2px solid ${color}`,
+  });
 
   return (
     <div
@@ -35,9 +49,22 @@ export function ExternalNodeNode({ data, selected }: NodeProps<ExternalNodeType>
         color: '#F8FAFC',
       }}
     >
-      <Handle type="target" position={Position.Left} id="in" style={{ background: '#94A3B8' }} />
-      <Handle type="source" position={Position.Right} id="out" style={{ background: '#94A3B8' }} />
-      
+      {/* Network handles — left */}
+      <Handle type="source" position={Position.Left} id="network-source" style={{ ...handleStyle(CONNECTION_COLORS.network), top: '35%' }} />
+      <Handle type="target" position={Position.Left} id="network-target" style={{ ...handleStyle(CONNECTION_COLORS.network), top: '65%' }} />
+
+      {/* Power handles — top */}
+      <Handle type="source" position={Position.Top} id="power-source" style={{ ...handleStyle(CONNECTION_COLORS.power), left: '40%' }} />
+      <Handle type="target" position={Position.Top} id="power-target" style={{ ...handleStyle(CONNECTION_COLORS.power), left: '60%' }} />
+
+      {/* AV handles — right */}
+      <Handle type="source" position={Position.Right} id="av-source" style={{ ...handleStyle(CONNECTION_COLORS.av), top: '35%' }} />
+      <Handle type="target" position={Position.Right} id="av-target" style={{ ...handleStyle(CONNECTION_COLORS.av), top: '65%' }} />
+
+      {/* Control handles — bottom */}
+      <Handle type="source" position={Position.Bottom} id="control-source" style={{ ...handleStyle(CONNECTION_COLORS.control), left: '40%' }} />
+      <Handle type="target" position={Position.Bottom} id="control-target" style={{ ...handleStyle(CONNECTION_COLORS.control), left: '60%' }} />
+
       <div style={{ fontSize: 24 }}>
         {icons[node.type] || '🌀'}
       </div>

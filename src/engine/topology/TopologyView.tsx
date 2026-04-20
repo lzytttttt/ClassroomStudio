@@ -22,6 +22,7 @@ import { TopologyToolbar } from './TopologyToolbar';
 import { getAssetById } from '@/features/component-library/assets-data';
 import { generateId } from '@/shared/utils/id';
 import { useUIStore } from '@/store/uiStore';
+import type { ConnectionType } from '@/shared/types/constants';
 
 // Union type for all node types in the topology
 type AppNode = DeviceNodeType | ExternalNodeType;
@@ -42,6 +43,18 @@ const nodeTypes = {
 const edgeTypes = {
   signal: SignalEdge,
 };
+
+/**
+ * Extract the connection type from a handle id.
+ * Handle ids follow the pattern: "{type}-source" or "{type}-target"
+ * e.g. "network-source" → "network", "av-target" → "av"
+ * Falls back to the raw id for backward compatibility.
+ */
+function parseHandleType(handleId: string | null | undefined): ConnectionType {
+  if (!handleId) return 'network';
+  const match = handleId.match(/^(network|av|control|power)/);
+  return (match ? match[1] : 'network') as ConnectionType;
+}
 
 function TopologyFlow() {
   const { scene, setScene, selectComponents, clearSelection, addConnection } = useSceneStore();
@@ -83,6 +96,7 @@ function TopologyFlow() {
 
   useEffect(() => {
     // 3. Convert Connections to Edges, filtering by filterTypes
+    // Use the new handle id format: "{type}-source" / "{type}-target"
     const flowEdges: AppEdge[] = scene.connections
       .filter((c) => filterTypes.includes(c.type))
       .map((c) => ({
@@ -96,24 +110,28 @@ function TopologyFlow() {
           lineStyle: lineStyle,
           bandwidth: c.bandwidth,
         },
-        sourceHandle: c.type,
-        targetHandle: c.type,
+        sourceHandle: `${c.type}-source`,
+        targetHandle: `${c.type}-target`,
       }));
 
     setEdges(flowEdges);
   }, [scene.connections, filterTypes, lineStyle, setEdges]);
 
-  // Handle Graph Logic updates
+  // Handle new connections created by dragging handles
   const onConnect = useCallback(
     (params: FlowConnection) => {
-      const handleType = params.targetHandle || params.sourceHandle || 'network';
-      
+      // Determine connection type from handle ids
+      const sourceType = parseHandleType(params.sourceHandle);
+      const targetType = parseHandleType(params.targetHandle);
+      // Prefer the source handle's type; they should match if the UI is working correctly
+      const connectionType = sourceType;
+
       const newConnection = {
         id: generateId(),
         sourceId: params.source,
         targetId: params.target,
-        type: handleType as any,
-        label: handleType.toUpperCase(),
+        type: connectionType,
+        label: connectionType.toUpperCase(),
         bandwidth: '',
         protocol: '',
         style: { color: '', dashArray: '', lineWidth: 2, animated: true }

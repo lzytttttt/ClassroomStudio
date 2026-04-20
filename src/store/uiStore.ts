@@ -13,6 +13,7 @@ interface UIState {
 
   // Connection wiring state
   connectionSource: string | null;
+  showConnections2D: boolean;
 
   // Modal state
   activeModal: string | null;
@@ -29,6 +30,7 @@ interface UIState {
   setDraggingAsset: (assetId: string | null) => void;
   setActiveTool: (tool: 'select' | 'pan' | 'zoom' | 'connect') => void;
   setConnectionSource: (id: string | null) => void;
+  toggleConnections2D: () => void;
   setActiveModal: (modal: string | null) => void;
   setHighlightedComponent: (id: string | null) => void;
   addToast: (toast: Omit<Toast, 'id'>) => void;
@@ -53,6 +55,7 @@ export const useUIStore = create<UIState>()((set) => ({
   showStatusBar: true,
   activeTool: 'select',
   connectionSource: null,
+  showConnections2D: false,
   activeModal: null,
   highlightedComponentId: null,
   toasts: [],
@@ -65,6 +68,7 @@ export const useUIStore = create<UIState>()((set) => ({
   }),
   setActiveTool: (tool) => set({ activeTool: tool, connectionSource: null }),
   setConnectionSource: (id) => set({ connectionSource: id }),
+  toggleConnections2D: () => set((s) => ({ showConnections2D: !s.showConnections2D })),
   setActiveModal: (modal) => set({ activeModal: modal }),
   setHighlightedComponent: (id) => {
     set({ highlightedComponentId: id });

@@ -33,7 +33,7 @@ export default function Canvas2D() {
     scene, addComponent, updateComponent, selectComponents,
     addToSelection, clearSelection, setZoom, setPan, addConnection, updateRoom
   } = useSceneStore();
-  const { activeTool, connectionSource, setConnectionSource, setActiveTool } = useUIStore();
+  const { activeTool, connectionSource, setConnectionSource, setActiveTool, showConnections2D } = useUIStore();
   const [connectTarget, setConnectTarget] = useState<{ id: string; screenX: number; screenY: number } | null>(null);
   const [connectPreview, setConnectPreview] = useState<{ x: number; y: number } | null>(null);
 
@@ -725,8 +725,9 @@ export default function Canvas2D() {
           )}
 
           {/* Connection Lines Layer */}
-          <Group x={offsetX} y={offsetY}>
-            {scene.connections.map(conn => {
+          {(showConnections2D || activeTool === 'connect') ? (
+            <Group x={offsetX} y={offsetY}>
+              {scene.connections.map(conn => {
               const sourceComp = components.find(c => c.id === conn.sourceId);
               const targetComp = components.find(c => c.id === conn.targetId);
               if (!sourceComp || !targetComp) return null;
@@ -800,9 +801,10 @@ export default function Canvas2D() {
               );
             })}
           </Group>
+          ) : null}
 
           {/* Connect tool preview line */}
-          {activeTool === 'connect' && connectionSource && connectPreview && (() => {
+          {(activeTool === 'connect' && connectionSource && connectPreview) ? (() => {
             const srcComp = components.find(c => c.id === connectionSource);
             if (!srcComp) return null;
             const srcAsset = getAssetById(srcComp.assetId);
@@ -823,7 +825,7 @@ export default function Canvas2D() {
                 <Circle x={connectPreview.x} y={connectPreview.y} radius={3 / scale} fill="#7C3AED" opacity={0.5} listening={false} />
               </Group>
             );
-          })()}
+          })() : null}
 
           {/* Transformer */}
           <Transformer

@@ -1,15 +1,17 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Panel, useReactFlow } from '@xyflow/react';
 import dagre from 'dagre';
 import { useSceneStore } from '@/store/sceneStore';
-import { Settings2, Zap, Wifi, MonitorPlay, Cpu } from 'lucide-react';
+import { Settings2, Zap, Wifi, MonitorPlay, Cpu, Cable, LayoutGrid } from 'lucide-react';
 import type { ConnectionType } from '@/shared/types/constants';
 import { generateId } from '@/shared/utils/id';
+import { generateAutoWiring } from './auto-wiring';
 
 export function TopologyToolbar() {
   const { scene, setScene } = useSceneStore();
   const { filterTypes, lineStyle } = scene.viewState.topology;
   const { setNodes, getNodes, getEdges, fitView } = useReactFlow();
+  const [wiringCount, setWiringCount] = useState<number | null>(null);
 
   const toggleFilter = (type: ConnectionType) => {
     const newFilters = filterTypes.includes(type)
@@ -118,8 +120,34 @@ export function TopologyToolbar() {
     });
   };
 
+  /**
+   * Auto-wiring: generate recommended connections based on device roles.
+   * Then auto-layout the graph for best visual representation.
+   */
+  const handleAutoWiring = () => {
+    const newConnections = generateAutoWiring(scene.components, scene.connections);
+    
+    if (newConnections.length === 0) {
+      setWiringCount(0);
+      setTimeout(() => setWiringCount(null), 2000);
+      return;
+    }
+
+    // Add new connections to the scene
+    const updatedScene = {
+      ...scene,
+      connections: [...scene.connections, ...newConnections],
+    };
+    setScene(updatedScene);
+    setWiringCount(newConnections.length);
+    setTimeout(() => setWiringCount(null), 3000);
+
+    // Auto-layout after wiring for better visual
+    setTimeout(() => autoLayout(), 300);
+  };
+
   return (
-    <Panel position="top-right" style={{ display: 'flex', gap: '8px', zIndex: 10 }}>
+    <Panel position="top-right" style={{ display: 'flex', gap: '8px', zIndex: 10, flexWrap: 'wrap', maxWidth: '100%' }}>
       {/* Node Addition */}
       <div style={{ background: 'var(--color-bg-panel)', padding: 8, borderRadius: 8, border: '1px solid var(--color-border)', display: 'flex', gap: 6 }}>
         <button onClick={() => addExternalNode('internet', '公网')} className="btn-sm" style={{ padding: '4px 8px' }}>+ 公网</button>
@@ -129,9 +157,35 @@ export function TopologyToolbar() {
 
       {/* Toolbox */}
       <div style={{ background: 'var(--color-bg-panel)', padding: 8, borderRadius: 8, border: '1px solid var(--color-border)', display: 'flex', gap: 8, alignItems: 'center' }}>
-        <button onClick={autoLayout} className="btn-primary" style={{ padding: '4px 12px', fontSize: 13 }}>
+        {/* Auto-wiring button */}
+        <button
+          onClick={handleAutoWiring}
+          className="btn-sm"
+          style={{
+            padding: '4px 12px',
+            fontSize: 13,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 4,
+            background: 'linear-gradient(135deg, #7C3AED20, #2563EB20)',
+            border: '1px solid #7C3AED40',
+            color: '#7C3AED',
+            fontWeight: 600,
+            borderRadius: 6,
+            cursor: 'pointer',
+            transition: 'all 0.2s',
+          }}
+          title="根据设备角色自动生成推荐接线"
+        >
+          <Cable size={14} />
+          自动接线
+        </button>
+
+        <button onClick={autoLayout} className="btn-primary" style={{ padding: '4px 12px', fontSize: 13, display: 'flex', alignItems: 'center', gap: 4 }}>
+          <LayoutGrid size={14} />
           一键排版
         </button>
+
         <div style={{ width: 1, height: 20, background: 'var(--color-border)' }} />
         <button onClick={toggleLineStyle} className="btn-sm" style={{ padding: '4px 8px', display: 'flex', alignItems: 'center', gap: 4 }}>
           <Settings2 size={14} />
@@ -153,6 +207,32 @@ export function TopologyToolbar() {
           <Zap size={18} />
         </button>
       </div>
+
+      {/* Wiring result toast */}
+      {wiringCount !== null && (
+        <div style={{
+          position: 'fixed',
+          top: 80,
+          left: '50%',
+          transform: 'translateX(-50%)',
+          background: wiringCount > 0
+            ? 'linear-gradient(135deg, #7C3AED, #2563EB)'
+            : 'rgba(100, 116, 139, 0.9)',
+          color: 'white',
+          padding: '8px 20px',
+          borderRadius: 20,
+          fontSize: 13,
+          fontWeight: 600,
+          boxShadow: '0 4px 16px rgba(0,0,0,0.2)',
+          zIndex: 9999,
+          animation: 'fadeInUp 0.3s ease-out',
+          pointerEvents: 'none',
+        }}>
+          {wiringCount > 0
+            ? `✅ 已自动生成 ${wiringCount} 条接线参考`
+            : '📋 所有推荐接线已存在，无需新增'}
+        </div>
+      )}
     </Panel>
   );
 }

@@ -93,15 +93,33 @@ export function createNormalClassroom(): Scene {
 /**
  * 精品录播教室模板
  * 4列×6排桌椅 + 智慧黑板 + PTZ摄像头×3 + 录播主机 + 音响 + 麦克风
+ * 
+ * 预置接线参考:
+ * - 网络: 交换机 → AP, 交换机 → 录播主机, 交换机 → 摄像头
+ * - 音视频: 摄像头 → 录播主机, 录播主机 → 智慧黑板, 麦克风 → 音响
  */
 export function createRecordingClassroom(): Scene {
   const components = [];
+  const connections = [];
   const roomW = 12000;
   const roomH = 9000;
 
+  // Use stable IDs so we can reference them in connections
+  const smartBoardId = generateId();
+  const deskTeacherId = generateId();
+  const cam1Id = generateId();
+  const cam2Id = generateId();
+  const cam3Id = generateId();
+  const recordingHostId = generateId();
+  const speaker1Id = generateId();
+  const speaker2Id = generateId();
+  const micId = generateId();
+  const switchId = generateId();
+  const apId = generateId();
+
   // 智慧黑板
   components.push({
-    id: generateId(),
+    id: smartBoardId,
     assetId: 'asset-smart-board',
     position: { x: (roomW - 4200) / 2, y: 100 },
     rotation: 0, scale: { x: 1, y: 1 }, elevation: 800, zIndex: 0,
@@ -112,7 +130,7 @@ export function createRecordingClassroom(): Scene {
 
   // 教师讲台
   components.push({
-    id: generateId(),
+    id: deskTeacherId,
     assetId: 'asset-desk-teacher',
     position: { x: (roomW - 1200) / 2, y: 700 },
     rotation: 0, scale: { x: 1, y: 1 }, elevation: 0, zIndex: 1,
@@ -121,15 +139,15 @@ export function createRecordingClassroom(): Scene {
     visible: true, locked: false, opacity: 1, groupId: null,
   });
 
-  // PTZ 摄像头 × 3 (后墙两侧 + 前墙)
+  // PTZ 摄像头 × 3
   const cameraPositions = [
-    { x: 500, y: 8400, name: '后方摄像头-左' },
-    { x: 11300, y: 8400, name: '后方摄像头-右' },
-    { x: 11300, y: 500, name: '前方摄像头' },
+    { id: cam1Id, x: 500, y: 8400, name: '后方摄像头-左' },
+    { id: cam2Id, x: 11300, y: 8400, name: '后方摄像头-右' },
+    { id: cam3Id, x: 11300, y: 500, name: '前方摄像头' },
   ];
   cameraPositions.forEach((pos, i) => {
     components.push({
-      id: generateId(),
+      id: pos.id,
       assetId: 'asset-camera-ptz',
       position: { x: pos.x, y: pos.y },
       rotation: 0, scale: { x: 1, y: 1 }, elevation: 2800, zIndex: 200 + i,
@@ -139,9 +157,9 @@ export function createRecordingClassroom(): Scene {
     });
   });
 
-  // 录播主机 (前方角落)
+  // 录播主机
   components.push({
-    id: generateId(),
+    id: recordingHostId,
     assetId: 'asset-recording-host',
     position: { x: 500, y: 500 },
     rotation: 0, scale: { x: 1, y: 1 }, elevation: 0, zIndex: 210,
@@ -151,9 +169,9 @@ export function createRecordingClassroom(): Scene {
   });
 
   // 壁挂音响 × 2
-  [{ x: 500, y: 3000 }, { x: 11300, y: 3000 }].forEach((pos, i) => {
+  [{ id: speaker1Id, x: 500, y: 3000 }, { id: speaker2Id, x: 11300, y: 3000 }].forEach((pos, i) => {
     components.push({
-      id: generateId(),
+      id: pos.id,
       assetId: 'asset-speaker',
       position: { x: pos.x, y: pos.y },
       rotation: 0, scale: { x: 1, y: 1 }, elevation: 2200, zIndex: 220 + i,
@@ -163,9 +181,9 @@ export function createRecordingClassroom(): Scene {
     });
   });
 
-  // 全向麦克风 (讲台上)
+  // 全向麦克风
   components.push({
-    id: generateId(),
+    id: micId,
     assetId: 'asset-microphone',
     position: { x: (roomW - 120) / 2, y: 750 },
     rotation: 0, scale: { x: 1, y: 1 }, elevation: 750, zIndex: 230,
@@ -174,9 +192,9 @@ export function createRecordingClassroom(): Scene {
     visible: true, locked: false, opacity: 1, groupId: null,
   });
 
-  // 交换机 (讲台旁)
+  // 交换机
   components.push({
-    id: generateId(),
+    id: switchId,
     assetId: 'asset-switch',
     position: { x: 1000, y: 800 },
     rotation: 0, scale: { x: 1, y: 1 }, elevation: 0, zIndex: 240,
@@ -185,9 +203,9 @@ export function createRecordingClassroom(): Scene {
     visible: true, locked: false, opacity: 1, groupId: null,
   });
 
-  // 无线AP (天花板中央)
+  // 无线AP
   components.push({
-    id: generateId(),
+    id: apId,
     assetId: 'asset-ap',
     position: { x: (roomW - 200) / 2, y: (roomH - 200) / 2 },
     rotation: 0, scale: { x: 1, y: 1 }, elevation: 3100, zIndex: 250,
@@ -227,6 +245,33 @@ export function createRecordingClassroom(): Scene {
     }
   }
 
+  // ═══ Preset Connections (wiring references) ═══
+  const mkConn = (src: string, tgt: string, type: string, label: string, bw = '') => ({
+    id: generateId(),
+    sourceId: src,
+    targetId: tgt,
+    type: type as any,
+    label,
+    bandwidth: bw,
+    protocol: '',
+    style: { color: '', dashArray: '', lineWidth: 2, animated: true },
+  });
+
+  // Network: Switch → AP, Switch → Recording, Switch → Cameras
+  connections.push(mkConn(switchId, apId, 'network', 'PoE', '1Gbps'));
+  connections.push(mkConn(switchId, recordingHostId, 'network', 'RJ45', '1Gbps'));
+  connections.push(mkConn(switchId, cam1Id, 'network', 'PoE', '100Mbps'));
+  connections.push(mkConn(switchId, cam2Id, 'network', 'PoE', '100Mbps'));
+  connections.push(mkConn(switchId, cam3Id, 'network', 'PoE', '100Mbps'));
+  connections.push(mkConn(switchId, smartBoardId, 'network', 'RJ45', '1Gbps'));
+
+  // AV: Cameras → Recording Host → Smart Board
+  connections.push(mkConn(cam1Id, recordingHostId, 'av', 'SDI', ''));
+  connections.push(mkConn(cam2Id, recordingHostId, 'av', 'SDI', ''));
+  connections.push(mkConn(cam3Id, recordingHostId, 'av', 'HDMI', ''));
+  connections.push(mkConn(recordingHostId, smartBoardId, 'av', 'HDMI', ''));
+  connections.push(mkConn(micId, speaker1Id, 'av', '音频', ''));
+
   return {
     id: generateId(),
     room: {
@@ -235,7 +280,7 @@ export function createRecordingClassroom(): Scene {
       floorColor: '#F1F5F9', wallColor: '#E2E8F0',
     },
     components,
-    connections: [],
+    connections,
     externalNodes: [],
     viewState: {
       activeView: '2d',
@@ -249,15 +294,28 @@ export function createRecordingClassroom(): Scene {
 /**
  * 计算机教室模板
  * U型布局 + 中央演示区 + 充电柜
+ * 
+ * 预置接线参考:
+ * - 网络: 交换机 → AP, 交换机 → 教师电脑, 交换机 → 学生电脑(前6台)
+ * - 音视频: 教师电脑 → 大屏
  */
 export function createComputerClassroom(): Scene {
   const components = [];
+  const connections = [];
   const roomW = 14000;
   const roomH = 10000;
 
+  // Stable IDs
+  const screenId = generateId();
+  const deskTeacherId = generateId();
+  const teacherPcId = generateId();
+  const switchId = generateId();
+  const apId = generateId();
+  const chargingId = generateId();
+
   // 交互大屏
   components.push({
-    id: generateId(),
+    id: screenId,
     assetId: 'asset-interactive-screen',
     position: { x: (roomW - 1920) / 2, y: 100 },
     rotation: 0, scale: { x: 1, y: 1 }, elevation: 800, zIndex: 0,
@@ -268,7 +326,7 @@ export function createComputerClassroom(): Scene {
 
   // 教师讲台 + 教师电脑
   components.push({
-    id: generateId(),
+    id: deskTeacherId,
     assetId: 'asset-desk-teacher',
     position: { x: (roomW - 1200) / 2, y: 700 },
     rotation: 0, scale: { x: 1, y: 1 }, elevation: 0, zIndex: 1,
@@ -278,7 +336,7 @@ export function createComputerClassroom(): Scene {
   });
 
   components.push({
-    id: generateId(),
+    id: teacherPcId,
     assetId: 'asset-pc-desktop',
     position: { x: (roomW - 180) / 2 + 300, y: 750 },
     rotation: 0, scale: { x: 1, y: 1 }, elevation: 750, zIndex: 2,
@@ -291,6 +349,8 @@ export function createComputerClassroom(): Scene {
   const cols = 6, rows = 5;
   const startX = 1600, startY = 2000;
   const spacingX = 1800, spacingY = 1600;
+
+  const studentPcIds: string[] = [];
 
   for (let r = 0; r < rows; r++) {
     for (let c = 0; c < cols; c++) {
@@ -307,8 +367,10 @@ export function createComputerClassroom(): Scene {
         visible: true, locked: false, opacity: 1, groupId: null,
       });
 
+      const pcId = generateId();
+      studentPcIds.push(pcId);
       components.push({
-        id: generateId(),
+        id: pcId,
         assetId: 'asset-pc-desktop',
         position: { x: x + 200, y: y + 20 },
         rotation: 0, scale: { x: 1, y: 1 }, elevation: 750, zIndex: 100 + r * cols + c,
@@ -319,9 +381,9 @@ export function createComputerClassroom(): Scene {
     }
   }
 
-  // 充电柜 (后方角落)
+  // 充电柜
   components.push({
-    id: generateId(),
+    id: chargingId,
     assetId: 'asset-charging-cart',
     position: { x: roomW - 1200, y: roomH - 1600 },
     rotation: 0, scale: { x: 1, y: 1 }, elevation: 0, zIndex: 300,
@@ -332,7 +394,7 @@ export function createComputerClassroom(): Scene {
 
   // 交换机
   components.push({
-    id: generateId(),
+    id: switchId,
     assetId: 'asset-switch',
     position: { x: 500, y: 800 },
     rotation: 0, scale: { x: 1, y: 1 }, elevation: 0, zIndex: 310,
@@ -343,7 +405,7 @@ export function createComputerClassroom(): Scene {
 
   // 无线AP
   components.push({
-    id: generateId(),
+    id: apId,
     assetId: 'asset-ap',
     position: { x: (roomW - 200) / 2, y: (roomH - 200) / 2 },
     rotation: 0, scale: { x: 1, y: 1 }, elevation: 3100, zIndex: 320,
@@ -351,6 +413,30 @@ export function createComputerClassroom(): Scene {
     properties: { brand: '华为', model: 'AirEngine 5760-10', interfaces: ['RJ45', 'PoE'], power: 15, price: 1500, quantity: 1, remark: '', customFields: {} },
     visible: true, locked: false, opacity: 1, groupId: null,
   });
+
+  // ═══ Preset Connections ═══
+  const mkConn = (src: string, tgt: string, type: string, label: string, bw = '') => ({
+    id: generateId(),
+    sourceId: src,
+    targetId: tgt,
+    type: type as any,
+    label,
+    bandwidth: bw,
+    protocol: '',
+    style: { color: '', dashArray: '', lineWidth: 2, animated: true },
+  });
+
+  // Network
+  connections.push(mkConn(switchId, apId, 'network', 'PoE', '1Gbps'));
+  connections.push(mkConn(switchId, teacherPcId, 'network', 'RJ45', '1Gbps'));
+  connections.push(mkConn(switchId, screenId, 'network', 'RJ45', '1Gbps'));
+  // First 6 student PCs
+  for (let i = 0; i < Math.min(6, studentPcIds.length); i++) {
+    connections.push(mkConn(switchId, studentPcIds[i], 'network', 'RJ45', '1Gbps'));
+  }
+
+  // AV: Teacher PC → Screen
+  connections.push(mkConn(teacherPcId, screenId, 'av', 'HDMI', ''));
 
   return {
     id: generateId(),
@@ -360,7 +446,7 @@ export function createComputerClassroom(): Scene {
       floorColor: '#F1F5F9', wallColor: '#E2E8F0',
     },
     components,
-    connections: [],
+    connections,
     externalNodes: [],
     viewState: {
       activeView: '2d',

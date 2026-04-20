@@ -4,15 +4,37 @@ import type { Node, NodeProps } from '@xyflow/react';
 import { Asset2DView } from '@/graphics';
 import { getAssetById } from '@/features/component-library/assets-data';
 import type { SceneComponent } from '@/shared/types';
+import { CONNECTION_COLORS } from '@/shared/types/constants';
 
 export type DeviceNodeData = { component: SceneComponent };
 export type DeviceNodeType = Node<DeviceNodeData, 'device'>;
 
+/**
+ * DeviceNode — Topology node representing a classroom device.
+ * 
+ * Each connection type has BOTH source and target handles positioned on
+ * specific edges of the node card. This ensures ReactFlow can draw edges
+ * regardless of the drag direction (A→B or B→A) for any connection type.
+ *
+ * Layout:
+ *   Top    — power   (red)
+ *   Left   — network (blue)
+ *   Right  — av      (purple)
+ *   Bottom — control (cyan)
+ */
 export function DeviceNode({ data, selected }: NodeProps<DeviceNodeType>) {
   const { component } = data;
   const asset = getAssetById(component.assetId);
 
   if (!asset) return null;
+
+  const handleStyle = (color: string, offset?: number): React.CSSProperties => ({
+    background: color,
+    width: 8,
+    height: 8,
+    border: `2px solid ${color}`,
+    ...(offset !== undefined ? { left: `${offset}%` } : {}),
+  });
 
   return (
     <div
@@ -28,22 +50,15 @@ export function DeviceNode({ data, selected }: NodeProps<DeviceNodeType>) {
         gap: 8,
       }}
     >
-      {/* Power Handle (Top) */}
-      <Handle
-        type="target"
-        position={Position.Top}
-        id="power"
-        style={{ background: '#DC2626', width: 10, height: 10 }}
-      />
-      
-      {/* Network Handle (Left) */}
-      <Handle
-        type="target"
-        position={Position.Left}
-        id="network"
-        style={{ background: '#2563EB', width: 10, height: 10 }}
-      />
+      {/* ═══ Power Handles (Top) — Red ═══ */}
+      <Handle type="source" position={Position.Top} id="power-source" style={{ ...handleStyle(CONNECTION_COLORS.power), left: '40%' }} />
+      <Handle type="target" position={Position.Top} id="power-target" style={{ ...handleStyle(CONNECTION_COLORS.power), left: '60%' }} />
 
+      {/* ═══ Network Handles (Left) — Blue ═══ */}
+      <Handle type="source" position={Position.Left} id="network-source" style={{ ...handleStyle(CONNECTION_COLORS.network), top: '35%' }} />
+      <Handle type="target" position={Position.Left} id="network-target" style={{ ...handleStyle(CONNECTION_COLORS.network), top: '65%' }} />
+
+      {/* Component info */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
         <div style={{
           width: 40, height: 40,
@@ -64,21 +79,13 @@ export function DeviceNode({ data, selected }: NodeProps<DeviceNodeType>) {
         </div>
       </div>
 
-      {/* AV Handle (Right) */}
-      <Handle
-        type="source"
-        position={Position.Right}
-        id="av"
-        style={{ background: '#7C3AED', width: 10, height: 10 }}
-      />
+      {/* ═══ AV Handles (Right) — Purple ═══ */}
+      <Handle type="source" position={Position.Right} id="av-source" style={{ ...handleStyle(CONNECTION_COLORS.av), top: '35%' }} />
+      <Handle type="target" position={Position.Right} id="av-target" style={{ ...handleStyle(CONNECTION_COLORS.av), top: '65%' }} />
 
-      {/* Control Handle (Bottom) */}
-      <Handle
-        type="source"
-        position={Position.Bottom}
-        id="control"
-        style={{ background: '#0891B2', width: 10, height: 10 }}
-      />
+      {/* ═══ Control Handles (Bottom) — Cyan ═══ */}
+      <Handle type="source" position={Position.Bottom} id="control-source" style={{ ...handleStyle(CONNECTION_COLORS.control), left: '40%' }} />
+      <Handle type="target" position={Position.Bottom} id="control-target" style={{ ...handleStyle(CONNECTION_COLORS.control), left: '60%' }} />
     </div>
   );
 }

@@ -7,7 +7,7 @@ import {
   ArrowLeft, Save, Download, MousePointer2, Hand, Undo2, Redo2,
   Copy, Trash2, Grid3x3, Magnet, Play, ImageDown, Camera,
   PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen,
-  GraduationCap, Cable, HelpCircle, X
+  GraduationCap, Cable, HelpCircle, X, Eye, EyeOff
 } from 'lucide-react';
 import { canvas2dScreenshotRef } from '@/engine/canvas2d/Canvas2D';
 
@@ -18,7 +18,7 @@ export default function Toolbar({ saveStatus, onSaveStatusChange }: { saveStatus
   const { undo, redo, pastStates, futureStates } = useSceneStore.temporal.getState();
   const canUndo = useSceneStore(state => useSceneStore.temporal.getState().pastStates.length > 0);
   const canRedo = useSceneStore(state => useSceneStore.temporal.getState().futureStates.length > 0);
-  const { activeTool, setActiveTool, leftSidebarOpen, rightSidebarOpen, toggleLeftSidebar, toggleRightSidebar, addToast } = useUIStore();
+  const { activeTool, setActiveTool, leftSidebarOpen, rightSidebarOpen, toggleLeftSidebar, toggleRightSidebar, addToast, showConnections2D, toggleConnections2D } = useUIStore();
   const { currentProject, saveCurrentProject } = useProjectStore();
 
   const selectedIds = scene.viewState.selectedIds;
@@ -75,6 +75,9 @@ export default function Toolbar({ saveStatus, onSaveStatusChange }: { saveStatus
       </button>
       <button onClick={() => setActiveTool('connect')} style={activeTool === 'connect' ? {...btnActive, color: '#7C3AED'} : btnBase} title="连线工具 (C) — 连接两个设备">
         <Cable size={16} />
+      </button>
+      <button onClick={toggleConnections2D} style={showConnections2D ? btnActive : btnBase} title="显示/隐藏接线">
+        {showConnections2D ? <Eye size={16} /> : <EyeOff size={16} />}
       </button>
 
       <Divider />
