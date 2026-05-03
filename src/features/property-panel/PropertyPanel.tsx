@@ -1,13 +1,14 @@
 import { useState } from 'react';
 import { useSceneStore } from '@/store/sceneStore';
 import { getAssetById } from '@/features/component-library/assets-data';
-import type { SceneComponent, DoorWindow, MountType } from '@/shared/types';
+import type { SceneComponent, DoorWindow, MountType, SceneRelation, SceneRelationType, Scene } from '@/shared/types';
 import { CATEGORY_LABELS } from '@/shared/types/constants';
-import { Settings2, Package, Ruler, Plug, DollarSign, MessageSquare, Home, Palette, DoorOpen, Plus, Trash2, Move3d } from 'lucide-react';
+import { Settings2, Package, Ruler, Plug, DollarSign, MessageSquare, Home, Palette, DoorOpen, Plus, Trash2, Move3d, Link2 } from 'lucide-react';
 import { generateId } from '@/shared/utils/id';
+import { getRelationsForComponent } from '@/shared/utils/sceneRelations';
 
 export default function PropertyPanel() {
-  const { scene, updateComponent, updateRoom } = useSceneStore();
+  const { scene, updateComponent, updateRoom, addRelation, removeRelation } = useSceneStore();
   const selectedIds = scene.viewState.selectedIds;
 
   if (selectedIds.length === 0) {
@@ -180,6 +181,16 @@ export default function PropertyPanel() {
           }}
         />
       </Section>
+
+      {/* Relations */}
+      <Section icon={Link2} title="关系">
+        <RelationEditor
+          component={component}
+          scene={scene}
+          onAdd={addRelation}
+          onRemove={removeRelation}
+        />
+      </Section>
     </div>
   );
 }
@@ -229,6 +240,148 @@ function FieldText({ label, value, onChange }: {
         className="input input-sm"
         style={{ flex: 1 }}
       />
+    </div>
+  );
+}
+
+// ==================== Relation Editor ====================
+
+const RELATION_TYPE_LABELS: Record<SceneRelationType, string> = {
+  placed_on: '放置于',
+  mounted_on: '安装于',
+  controls: '控制',
+  depends_on: '依赖',
+  covers: '覆盖',
+  contains: '包含',
+};
+
+function RelationEditor({ component, scene, onAdd, onRemove }: {
+  component: SceneComponent;
+  scene: Scene;
+  onAdd: (relation: SceneRelation) => void;
+  onRemove: (id: string) => void;
+}) {
+  const [addMode, setAddMode] = useState(false);
+  const [relType, setRelType] = useState<SceneRelationType>('placed_on');
+  const [targetId, setTargetId] = useState('');
+
+  const relations = getRelationsForComponent(scene, component.id);
+  const otherComponents = scene.components.filter(c => c.id !== component.id);
+
+  const handleAdd = () => {
+    if (!targetId) return;
+    onAdd({
+      id: generateId(),
+      type: relType,
+      sourceId: component.id,
+      targetId,
+    });
+    setAddMode(false);
+    setTargetId('');
+  };
+
+  return (
+    <div>
+      {relations.length === 0 && !addMode && (
+        <div style={{ fontSize: 11, color: 'var(--color-text-tertiary)', marginBottom: 6 }}>
+          暂无关系
+        </div>
+      )}
+
+      {relations.map(rel => {
+        const otherId = rel.sourceId === component.id ? rel.targetId : rel.sourceId;
+        const otherComp = scene.components.find(c => c.id === otherId);
+        const direction = rel.sourceId === component.id ? '→' : '←';
+        return (
+          <div key={rel.id} style={{
+            display: 'flex', alignItems: 'center', gap: 4, marginBottom: 4,
+            fontSize: 11, color: 'var(--color-text-secondary)',
+          }}>
+            <span style={{ color: 'var(--color-primary)', fontWeight: 500, flexShrink: 0 }}>
+              {RELATION_TYPE_LABELS[rel.type]}
+            </span>
+            <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              {direction} {otherComp?.name ?? otherId}
+            </span>
+            <button
+              onClick={() => onRemove(rel.id)}
+              style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-error)', padding: 2 }}
+            >
+              <Trash2 size={11} />
+            </button>
+          </div>
+        );
+      })}
+
+      {addMode ? (
+        <div style={{ marginTop: 4, padding: '6px 8px', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-sm)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginBottom: 4 }}>
+            <select
+              value={relType}
+              onChange={e => setRelType(e.target.value as SceneRelationType)}
+              className="input input-sm"
+              style={{ flex: 1, fontSize: 11 }}
+            >
+              {Object.entries(RELATION_TYPE_LABELS).map(([val, label]) => (
+                <option key={val} value={val}>{label}</option>
+              ))}
+            </select>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginBottom: 4 }}>
+            <select
+              value={targetId}
+              onChange={e => setTargetId(e.target.value)}
+              className="input input-sm"
+              style={{ flex: 1, fontSize: 11 }}
+            >
+              <option value="">选择目标组件...</option>
+              {otherComponents.map(c => (
+                <option key={c.id} value={c.id}>{c.name || c.id}</option>
+              ))}
+            </select>
+          </div>
+          <div style={{ display: 'flex', gap: 4 }}>
+            <button
+              onClick={handleAdd}
+              disabled={!targetId}
+              style={{
+                flex: 1, padding: '3px 6px', fontSize: 11, fontWeight: 500,
+                background: targetId ? 'var(--color-primary)' : 'var(--color-bg-hover)',
+                color: targetId ? 'white' : 'var(--color-text-tertiary)',
+                border: '1px solid var(--color-border)', borderRadius: 'var(--radius-sm)',
+                cursor: targetId ? 'pointer' : 'default',
+              }}
+            >
+              添加
+            </button>
+            <button
+              onClick={() => { setAddMode(false); setTargetId(''); }}
+              style={{
+                flex: 1, padding: '3px 6px', fontSize: 11, fontWeight: 500,
+                background: 'var(--color-bg-hover)', border: '1px solid var(--color-border)',
+                borderRadius: 'var(--radius-sm)', cursor: 'pointer',
+                color: 'var(--color-text-secondary)',
+              }}
+            >
+              取消
+            </button>
+          </div>
+        </div>
+      ) : (
+        <button
+          onClick={() => setAddMode(true)}
+          disabled={otherComponents.length === 0}
+          style={{
+            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4,
+            width: '100%', padding: '4px 6px', fontSize: 11, fontWeight: 500,
+            background: 'var(--color-bg-hover)', border: '1px solid var(--color-border)',
+            borderRadius: 'var(--radius-sm)', cursor: 'pointer',
+            color: 'var(--color-text-secondary)',
+          }}
+        >
+          <Plus size={12} /> 添加关系
+        </button>
+      )}
     </div>
   );
 }

@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { temporal } from 'zundo';
-import type { Scene, SceneComponent, ComponentProperties, Connection, ViewState, Room } from '@/shared/types';
+import type { Scene, SceneComponent, ComponentProperties, Connection, ViewState, Room, SceneRelation } from '@/shared/types';
 import type { ViewMode } from '@/shared/types/constants';
 import { generateId } from '@/shared/utils/id';
 import { getDefaultSpatialForAsset } from '@/shared/utils/spatialDefaults';
@@ -87,6 +87,11 @@ interface SceneState {
   // Connection actions
   addConnection: (connection: Connection) => void;
   removeConnection: (id: string) => void;
+
+  // Relation actions
+  addRelation: (relation: SceneRelation) => void;
+  removeRelation: (id: string) => void;
+  updateRelation: (id: string, patch: Partial<Omit<SceneRelation, 'id'>>) => void;
 
   // Layer actions
   bringToFront: (ids: string[]) => void;
@@ -359,6 +364,30 @@ export const useSceneStore = create<SceneState>()(temporal((set, get) => ({
     scene: {
       ...state.scene,
       connections: state.scene.connections.filter((c) => c.id !== id),
+    },
+  })),
+
+  addRelation: (relation) => set((state) => {
+    const existing = state.scene.relations ?? [];
+    if (existing.some(r => r.id === relation.id)) return state;
+    return {
+      scene: { ...state.scene, relations: [...existing, relation] },
+    };
+  }),
+
+  removeRelation: (id) => set((state) => ({
+    scene: {
+      ...state.scene,
+      relations: (state.scene.relations ?? []).filter(r => r.id !== id),
+    },
+  })),
+
+  updateRelation: (id, patch) => set((state) => ({
+    scene: {
+      ...state.scene,
+      relations: (state.scene.relations ?? []).map(r =>
+        r.id === id ? { ...r, ...patch } : r
+      ),
     },
   })),
 

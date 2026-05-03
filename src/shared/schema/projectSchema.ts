@@ -9,6 +9,15 @@ import type { Project } from '@/shared/types';
  * objects, so nested object defaults use explicit factory functions.
  */
 
+const SceneRelationSchema = z.object({
+  id: z.string(),
+  type: z.enum(['placed_on', 'mounted_on', 'controls', 'depends_on', 'covers', 'contains']),
+  sourceId: z.string(),
+  targetId: z.string(),
+  label: z.string().optional(),
+  metadata: z.record(z.string(), z.unknown()).optional(),
+});
+
 const ComponentSpatialSchema = z.object({
   z: z.number().optional(),
   elevation: z.number().optional(),
@@ -160,6 +169,7 @@ const SceneSchema = z.object({
   components: z.array(SceneComponentSchema).default([]),
   connections: z.array(ConnectionSchema).default([]),
   externalNodes: z.array(ExternalNodeSchema).default([]),
+  relations: z.array(SceneRelationSchema).optional(),
   viewState: ViewStateSchema.default(() => ({
     activeView: '2d',
     canvas2d: { panX: 0, panY: 0, zoom: 1, showGrid: true, gridSize: 500, snapToGrid: true },

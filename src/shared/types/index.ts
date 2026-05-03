@@ -15,6 +15,25 @@ export interface ComponentSpatial {
   parentId?: string;         // 承载组件 ID（临时轻量字段，不替代未来 relations 模型）
 }
 
+// ==================== 场景关系 ====================
+
+export type SceneRelationType =
+  | 'placed_on'
+  | 'mounted_on'
+  | 'controls'
+  | 'depends_on'
+  | 'covers'
+  | 'contains';
+
+export interface SceneRelation {
+  id: string;
+  type: SceneRelationType;
+  sourceId: string;
+  targetId: string;
+  label?: string;
+  metadata?: Record<string, unknown>;
+}
+
 // ==================== 项目层 ====================
 
 export interface Project {
@@ -58,6 +77,7 @@ export interface Scene {
   connections: Connection[];
   externalNodes: ExternalNode[];
   viewState: ViewState;
+  relations?: SceneRelation[];
 }
 
 // ==================== 教室空间 ====================

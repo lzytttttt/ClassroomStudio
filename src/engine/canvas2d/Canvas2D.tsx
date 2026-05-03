@@ -1,4 +1,4 @@
-import { useRef, useCallback, useEffect, useState } from 'react';
+import { useRef, useCallback, useEffect, useState, useMemo } from 'react';
 import { Stage, Layer, Rect, Group, Line, Text, Circle, Transformer, Arrow } from 'react-konva';
 import type Konva from 'konva';
 import { useSceneStore } from '@/store/sceneStore';
@@ -9,6 +9,7 @@ import { CONNECTION_COLORS, type ConnectionType } from '@/shared/types/constants
 import { getComponentRenderer } from './component-renderers';
 import { generateId } from '@/shared/utils/id';
 import { ConnectionTypePicker } from '@/features/connection-picker/ConnectionTypePicker';
+import { getRelatedComponentIds } from '@/shared/utils/sceneRelations';
 
 // Expose screenshot capability via a global ref
 export const canvas2dScreenshotRef: { current: (() => void) | null } = { current: null };
@@ -40,6 +41,12 @@ export default function Canvas2D() {
   const { room, components, viewState } = scene;
   const { canvas2d, selectedIds } = viewState;
   const scale = canvas2d.zoom;
+
+  // Compute related component IDs for relation highlighting
+  const relatedIds = useMemo(() => {
+    if (selectedIds.length !== 1) return new Set<string>();
+    return new Set(getRelatedComponentIds(scene, selectedIds[0]));
+  }, [scene, selectedIds]);
 
   // Room dimensions in pixels
   const roomW = room.width * MM_TO_PX;
@@ -657,6 +664,7 @@ export default function Canvas2D() {
                 key={comp.id}
                 component={comp}
                 isSelected={selectedIds.includes(comp.id)}
+                isRelated={relatedIds.has(comp.id)}
                 isConnectSource={activeTool === 'connect' && connectionSource === comp.id}
                 onSelect={(id, multi) => {
                   if (activeTool === 'connect') {
@@ -896,6 +904,7 @@ export default function Canvas2D() {
 interface ComponentNodeProps {
   component: SceneComponent;
   isSelected: boolean;
+  isRelated?: boolean;
   isConnectSource?: boolean;
   onSelect: (id: string, multi: boolean) => void;
   onDragMove: (id: string, x: number, y: number, w: number, h: number, e: Konva.KonvaEventObject<DragEvent>) => void;
@@ -904,7 +913,7 @@ interface ComponentNodeProps {
   gridSize: number;
 }
 
-function ComponentNode({ component, isSelected, isConnectSource, onSelect, onDragMove, onDragEnd, snapToGrid, gridSize }: ComponentNodeProps) {
+function ComponentNode({ component, isSelected, isRelated, isConnectSource, onSelect, onDragMove, onDragEnd, snapToGrid, gridSize }: ComponentNodeProps) {
   const asset = getAssetById(component.assetId);
   if (!asset) return null;
 
@@ -1039,6 +1048,22 @@ function ComponentNode({ component, isSelected, isConnectSource, onSelect, onDra
           shadowColor="#7C3AED"
           shadowBlur={12}
           shadowOpacity={0.6}
+        />
+      )}
+
+      {/* Relation highlight — subtle amber ring */}
+      {isRelated && !isSelected && (
+        <Rect
+          x={-2} y={-2}
+          width={w + 4} height={h + 4}
+          stroke="#F59E0B"
+          strokeWidth={1.5}
+          dash={[4, 3]}
+          cornerRadius={4}
+          listening={false}
+          shadowColor="#F59E0B"
+          shadowBlur={4}
+          shadowOpacity={0.3}
         />
       )}
     </Group>

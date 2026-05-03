@@ -190,4 +190,55 @@ describe('validateProjectFile', () => {
     const result = validateProjectFile(project);
     expect(result.success).toBe(false);
   });
+
+  // ── Relations field (optional, backward-compatible) ──
+
+  it('accepts projects without relations (backward compat)', () => {
+    const result = validateProjectFile(MINIMAL_PROJECT);
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.schemes[0].scene.relations).toBeUndefined();
+    }
+  });
+
+  it('accepts projects with valid relations', () => {
+    const project = structuredClone(MINIMAL_PROJECT);
+    (project.schemes[0].scene as any).relations = [
+      { id: 'r1', type: 'placed_on', sourceId: 'c1', targetId: 'c2' },
+    ];
+    const result = validateProjectFile(project);
+    expect(result.success).toBe(true);
+    if (result.success) {
+      const rel = result.data.schemes[0].scene.relations![0];
+      expect(rel.type).toBe('placed_on');
+      expect(rel.sourceId).toBe('c1');
+    }
+  });
+
+  it('rejects invalid relation type', () => {
+    const project = structuredClone(MINIMAL_PROJECT);
+    (project.schemes[0].scene as any).relations = [
+      { id: 'r1', type: 'invalid_type', sourceId: 'c1', targetId: 'c2' },
+    ];
+    const result = validateProjectFile(project);
+    expect(result.success).toBe(false);
+  });
+
+  it('rejects relation missing sourceId', () => {
+    const project = structuredClone(MINIMAL_PROJECT);
+    (project.schemes[0].scene as any).relations = [
+      { id: 'r1', type: 'controls', targetId: 'c2' },
+    ];
+    const result = validateProjectFile(project);
+    expect(result.success).toBe(false);
+  });
+
+  it('rejects relation missing targetId', () => {
+    const project = structuredClone(MINIMAL_PROJECT);
+    (project.schemes[0].scene as any).relations = [
+      { id: 'r1', type: 'controls', sourceId: 'c1' },
+    ];
+    const result = validateProjectFile(project);
+    expect(result.success).toBe(false);
+  });
 });
