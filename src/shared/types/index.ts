@@ -1,5 +1,7 @@
 import type { AssetCategory, ConnectionType, ExternalNodeType, ViewMode } from './constants';
 
+export * from './interaction';
+
 // ==================== 空间语义 ====================
 
 export type MountType = 'floor' | 'wall' | 'ceiling' | 'desktop' | 'rack';

@@ -5,11 +5,12 @@ import { useSceneStore } from '@/store/sceneStore';
 import { useUIStore } from '@/store/uiStore';
 import { getAssetById } from '@/features/component-library/assets-data';
 import type { SceneComponent, Connection } from '@/shared/types';
+import type { InteractionVisualEffect } from '@/shared/types/interaction';
 import { CONNECTION_COLORS, type ConnectionType } from '@/shared/types/constants';
 import { getComponentRenderer } from './component-renderers';
 import { generateId } from '@/shared/utils/id';
 import { ConnectionTypePicker } from '@/features/connection-picker/ConnectionTypePicker';
-import { getRelatedComponentIds } from '@/shared/utils/sceneRelations';
+import { useInteractionStore } from '@/store/interactionStore';
 
 // Expose screenshot capability via a global ref
 export const canvas2dScreenshotRef: { current: (() => void) | null } = { current: null };
@@ -42,11 +43,31 @@ export default function Canvas2D() {
   const { canvas2d, selectedIds } = viewState;
   const scale = canvas2d.zoom;
 
-  // Compute related component IDs for relation highlighting
-  const relatedIds = useMemo(() => {
-    if (selectedIds.length !== 1) return new Set<string>();
-    return new Set(getRelatedComponentIds(scene, selectedIds[0]));
-  }, [scene, selectedIds]);
+  // Interaction effects from the interaction framework
+  const { activeEffects, setActiveComponent } = useInteractionStore();
+
+  // Sync selection → interaction store
+  useEffect(() => {
+    setActiveComponent(selectedIds.length === 1 ? selectedIds[0] : null, scene);
+  }, [selectedIds, scene, setActiveComponent]);
+
+  // Build effect map: componentId → highlight effect
+  const effectMap = useMemo(() => {
+    const map = new Map<string, InteractionVisualEffect>();
+    for (const effect of activeEffects) {
+      if (effect.type === 'highlight_components') {
+        for (const cid of effect.targetComponentIds) {
+          map.set(cid, effect);
+        }
+      }
+    }
+    return map;
+  }, [activeEffects]);
+
+  // Coverage effects for the selected component
+  const coverageEffects = useMemo(() => {
+    return activeEffects.filter(e => e.type === 'show_coverage_area');
+  }, [activeEffects]);
 
   // Room dimensions in pixels
   const roomW = room.width * MM_TO_PX;
@@ -659,12 +680,34 @@ export default function Canvas2D() {
         {/* Components layer */}
         <Layer>
           <Group x={offsetX} y={offsetY}>
+            {/* Coverage area circles */}
+            {coverageEffects.map(effect => {
+              const payload = effect.payload as { shape?: string; radius?: number } | undefined;
+              if (payload?.shape !== 'circle' || !payload.radius) return null;
+              const targetComp = components.find(c => effect.targetComponentIds.includes(c.id));
+              if (!targetComp) return null;
+              const asset = getAssetById(targetComp.assetId);
+              const cx = targetComp.position.x * MM_TO_PX + ((asset?.defaultSize.width ?? 0) * MM_TO_PX * targetComp.scale.x) / 2;
+              const cy = targetComp.position.y * MM_TO_PX + ((asset?.defaultSize.height ?? 0) * MM_TO_PX * targetComp.scale.y) / 2;
+              const radiusPx = payload.radius * MM_TO_PX;
+              return (
+                <Circle
+                  key={effect.id}
+                  x={cx} y={cy}
+                  radius={radiusPx}
+                  fill={effect.style?.color ?? '#3B82F6'}
+                  opacity={effect.style?.opacity ?? 0.08}
+                  listening={false}
+                />
+              );
+            })}
+
             {components.map(comp => (
               <ComponentNode
                 key={comp.id}
                 component={comp}
                 isSelected={selectedIds.includes(comp.id)}
-                isRelated={relatedIds.has(comp.id)}
+                effectHighlight={effectMap.get(comp.id)}
                 isConnectSource={activeTool === 'connect' && connectionSource === comp.id}
                 onSelect={(id, multi) => {
                   if (activeTool === 'connect') {
@@ -904,7 +947,7 @@ export default function Canvas2D() {
 interface ComponentNodeProps {
   component: SceneComponent;
   isSelected: boolean;
-  isRelated?: boolean;
+  effectHighlight?: InteractionVisualEffect;
   isConnectSource?: boolean;
   onSelect: (id: string, multi: boolean) => void;
   onDragMove: (id: string, x: number, y: number, w: number, h: number, e: Konva.KonvaEventObject<DragEvent>) => void;
@@ -913,7 +956,7 @@ interface ComponentNodeProps {
   gridSize: number;
 }
 
-function ComponentNode({ component, isSelected, isRelated, isConnectSource, onSelect, onDragMove, onDragEnd, snapToGrid, gridSize }: ComponentNodeProps) {
+function ComponentNode({ component, isSelected, effectHighlight, isConnectSource, onSelect, onDragMove, onDragEnd, snapToGrid, gridSize }: ComponentNodeProps) {
   const asset = getAssetById(component.assetId);
   if (!asset) return null;
 
@@ -1051,19 +1094,20 @@ function ComponentNode({ component, isSelected, isRelated, isConnectSource, onSe
         />
       )}
 
-      {/* Relation highlight — subtle amber ring */}
-      {isRelated && !isSelected && (
+      {/* Interaction effect highlight */}
+      {effectHighlight && !isSelected && (
         <Rect
           x={-2} y={-2}
           width={w + 4} height={h + 4}
-          stroke="#F59E0B"
+          stroke={effectHighlight.style?.color ?? '#F59E0B'}
           strokeWidth={1.5}
-          dash={[4, 3]}
+          dash={effectHighlight.style?.dashed ? [4, 3] : undefined}
           cornerRadius={4}
           listening={false}
-          shadowColor="#F59E0B"
+          shadowColor={effectHighlight.style?.color ?? '#F59E0B'}
           shadowBlur={4}
           shadowOpacity={0.3}
+          opacity={effectHighlight.style?.opacity ?? 1}
         />
       )}
     </Group>

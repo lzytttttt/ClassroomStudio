@@ -6,6 +6,8 @@ import { CATEGORY_LABELS } from '@/shared/types/constants';
 import { Settings2, Package, Ruler, Plug, DollarSign, MessageSquare, Home, Palette, DoorOpen, Plus, Trash2, Move3d, Link2 } from 'lucide-react';
 import { generateId } from '@/shared/utils/id';
 import { getRelationsForComponent } from '@/shared/utils/sceneRelations';
+import { useInteractionStore } from '@/store/interactionStore';
+import { getRelationTypeVisualStyle } from '@/shared/utils/interactionEngine';
 
 export default function PropertyPanel() {
   const { scene, updateComponent, updateRoom, addRelation, removeRelation } = useSceneStore();
@@ -190,6 +192,7 @@ export default function PropertyPanel() {
           onAdd={addRelation}
           onRemove={removeRelation}
         />
+        <InteractionSummary componentId={component.id} />
       </Section>
     </div>
   );
@@ -246,14 +249,13 @@ function FieldText({ label, value, onChange }: {
 
 // ==================== Relation Editor ====================
 
-const RELATION_TYPE_LABELS: Record<SceneRelationType, string> = {
-  placed_on: '放置于',
-  mounted_on: '安装于',
-  controls: '控制',
-  depends_on: '依赖',
-  covers: '覆盖',
-  contains: '包含',
-};
+function getRelationLabel(type: SceneRelationType): string {
+  return getRelationTypeVisualStyle(type).label;
+}
+
+function getRelationColor(type: SceneRelationType): string {
+  return getRelationTypeVisualStyle(type).color;
+}
 
 function RelationEditor({ component, scene, onAdd, onRemove }: {
   component: SceneComponent;
@@ -297,8 +299,12 @@ function RelationEditor({ component, scene, onAdd, onRemove }: {
             display: 'flex', alignItems: 'center', gap: 4, marginBottom: 4,
             fontSize: 11, color: 'var(--color-text-secondary)',
           }}>
-            <span style={{ color: 'var(--color-primary)', fontWeight: 500, flexShrink: 0 }}>
-              {RELATION_TYPE_LABELS[rel.type]}
+            <span style={{
+              display: 'inline-block', width: 8, height: 8, borderRadius: 2,
+              background: getRelationColor(rel.type), flexShrink: 0,
+            }} />
+            <span style={{ color: getRelationColor(rel.type), fontWeight: 500, flexShrink: 0 }}>
+              {getRelationLabel(rel.type)}
             </span>
             <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               {direction} {otherComp?.name ?? otherId}
@@ -322,8 +328,8 @@ function RelationEditor({ component, scene, onAdd, onRemove }: {
               className="input input-sm"
               style={{ flex: 1, fontSize: 11 }}
             >
-              {Object.entries(RELATION_TYPE_LABELS).map(([val, label]) => (
-                <option key={val} value={val}>{label}</option>
+              {(['placed_on', 'mounted_on', 'controls', 'depends_on', 'covers', 'contains'] as SceneRelationType[]).map(val => (
+                <option key={val} value={val}>{getRelationLabel(val)}</option>
               ))}
             </select>
           </div>
@@ -382,6 +388,36 @@ function RelationEditor({ component, scene, onAdd, onRemove }: {
           <Plus size={12} /> 添加关系
         </button>
       )}
+    </div>
+  );
+}
+
+// ==================== Interaction Summary ====================
+
+function InteractionSummary({ componentId }: { componentId: string }) {
+  const { activeEffects } = useInteractionStore();
+
+  const relevantEffects = activeEffects.filter(
+    e => e.type === 'show_relation_badges' && e.targetComponentIds.includes(componentId)
+  );
+
+  if (relevantEffects.length === 0) return null;
+
+  return (
+    <div style={{ marginTop: 8, padding: '6px 8px', background: 'var(--color-bg-hover)', borderRadius: 'var(--radius-sm)' }}>
+      <div style={{ fontSize: 10, color: 'var(--color-text-tertiary)', marginBottom: 4 }}>交互效果</div>
+      {relevantEffects.map(effect => (
+        <div key={effect.id} style={{
+          display: 'flex', alignItems: 'center', gap: 4, marginBottom: 2,
+          fontSize: 11, color: 'var(--color-text-secondary)',
+        }}>
+          <span style={{
+            display: 'inline-block', width: 6, height: 6, borderRadius: 1,
+            background: effect.style?.color ?? '#6B7280',
+          }} />
+          <span>{effect.style?.label ?? effect.type}</span>
+        </div>
+      ))}
     </div>
   );
 }
