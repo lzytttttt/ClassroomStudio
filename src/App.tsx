@@ -4,6 +4,7 @@ import HomePage from './pages/HomePage/HomePage';
 import EditorPage from './pages/EditorPage/EditorPage';
 import { useProjectStore } from './store/projectStore';
 import { useUIStore } from './store/uiStore';
+import { ErrorBoundary } from './shared/components/ErrorBoundary';
 
 function App() {
   const { initProjects } = useProjectStore();
@@ -15,11 +16,13 @@ function App() {
 
   return (
     <>
-      <Routes>
-        <Route path="/" element={<HomePage />} />
-        <Route path="/editor" element={<EditorPage />} />
-        <Route path="/editor/:projectId" element={<EditorPage />} />
-      </Routes>
+      <ErrorBoundary fallbackLabel="页面">
+        <Routes>
+          <Route path="/" element={<HomePage />} />
+          <Route path="/editor" element={<EditorPage />} />
+          <Route path="/editor/:projectId" element={<EditorPage />} />
+        </Routes>
+      </ErrorBoundary>
       
       {/* Toast Container */}
       <div style={{

@@ -2,6 +2,7 @@ import { useNavigate } from 'react-router-dom';
 import { useProjectStore } from '@/store/projectStore';
 import { useSceneStore } from '@/store/sceneStore';
 import { TEMPLATE_FACTORIES } from '@/assets/templates/templates';
+import { validateProjectFile } from '@/shared/schema/projectSchema';
 import {
   Plus, FolderOpen, FileText, Clock, Trash2, Copy,
   GraduationCap, Monitor, FlaskConical, Laptop, BookOpen, Presentation, Shapes
@@ -54,21 +55,24 @@ export default function HomePage() {
       reader.onload = async (event) => {
         try {
           const content = event.target?.result as string;
-          const project = JSON.parse(content);
-          if (project && project.id && project.schemes) {
-            project.id = crypto.randomUUID();
-            project.updatedAt = new Date().toISOString();
-            
-            const { initProjects } = useProjectStore.getState();
-            import('@/lib/db').then(async ({ saveProject }) => {
-               await saveProject(project);
-               await initProjects();
-               navigate(`/editor/${project.id}`);
-            });
+          const raw = JSON.parse(content);
+          const validation = validateProjectFile(raw);
+          if (!validation.success) {
+            alert(`项目文件格式无效: ${validation.error}`);
+            return;
           }
+          const project = validation.data;
+          project.id = crypto.randomUUID();
+          project.updatedAt = new Date().toISOString();
+
+          const { initProjects } = useProjectStore.getState();
+          const { saveProject } = await import('@/lib/db');
+          await saveProject(project);
+          await initProjects();
+          navigate(`/editor/${project.id}`);
         } catch (err) {
-          console.error("Invalid project file", err);
-          alert("无效的项目文件");
+          console.error('Invalid project file', err);
+          alert('无法读取项目文件，请确认文件格式为有效的 JSON。');
         }
       };
       reader.readAsText(file);

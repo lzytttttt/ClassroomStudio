@@ -14,6 +14,7 @@ import { useUIStore } from '@/store/uiStore';
 import { useProjectStore } from '@/store/projectStore';
 import { getProject } from '@/lib/db';
 import CanvasContextMenu from '@/features/context-menu/CanvasContextMenu';
+import { ErrorBoundary } from '@/shared/components/ErrorBoundary';
 
 export default function EditorPage() {
   const { projectId } = useParams();
@@ -199,10 +200,18 @@ export default function EditorPage() {
             }
           }}
         >
-          {activeView === '2d' && <Canvas2D />}
-          {activeView === 'bom' && <BOMView />}
-          {activeView === '2.5d' && <Canvas25D />}
-          {activeView === 'topology' && <TopologyView />}
+          <ErrorBoundary fallbackLabel="2D 编辑器" key="2d-boundary">
+            {activeView === '2d' && <Canvas2D />}
+          </ErrorBoundary>
+          <ErrorBoundary fallbackLabel="设备清单" key="bom-boundary">
+            {activeView === 'bom' && <BOMView />}
+          </ErrorBoundary>
+          <ErrorBoundary fallbackLabel="2.5D 视图" key="25d-boundary">
+            {activeView === '2.5d' && <Canvas25D />}
+          </ErrorBoundary>
+          <ErrorBoundary fallbackLabel="拓扑视图" key="topology-boundary">
+            {activeView === 'topology' && <TopologyView />}
+          </ErrorBoundary>
         </div>
 
         {/* Right Sidebar: Property Panel */}
