@@ -9,6 +9,17 @@ import type { Project } from '@/shared/types';
  * objects, so nested object defaults use explicit factory functions.
  */
 
+const ComponentSpatialSchema = z.object({
+  z: z.number().optional(),
+  elevation: z.number().optional(),
+  depth: z.number().optional(),
+  objectHeight: z.number().optional(),
+  mountType: z.enum(['floor', 'wall', 'ceiling', 'desktop', 'rack']).optional(),
+  layer: z.string().optional(),
+  supportsChildren: z.boolean().optional(),
+  parentId: z.string().optional(),
+}).optional();
+
 const ComponentPropertiesSchema = z.object({
   brand: z.string().default(''),
   model: z.string().default(''),
@@ -44,6 +55,7 @@ const SceneComponentSchema = z.object({
   opacity: z.number().default(1),
   groupId: z.string().nullable().default(null),
   topologyPosition: z.object({ x: z.number(), y: z.number() }).optional(),
+  spatial: ComponentSpatialSchema,
 });
 
 const ConnectionStyleSchema = z.object({

@@ -87,11 +87,16 @@ export default function Canvas25D() {
   // Prepare Depth-Sorted Components
   // Isometric depth sorting: back to front, bottom to top.
   // Weight = x + y (since x and y origin distances grow towards us).
+  // spatial.z is used as a fine-grained tiebreaker when positions are close.
   const sortedComponents = [...components].sort((a, b) => {
     const depthA = a.position.x + a.position.y;
     const depthB = b.position.x + b.position.y;
     if (Math.abs(depthA - depthB) < 1) {
-       return a.elevation - b.elevation;
+      const elevDiff = a.elevation - b.elevation;
+      if (Math.abs(elevDiff) < 1) {
+        return (a.spatial?.z ?? a.zIndex) - (b.spatial?.z ?? b.zIndex);
+      }
+      return elevDiff;
     }
     return depthA - depthB;
   });

@@ -3,6 +3,7 @@ import { temporal } from 'zundo';
 import type { Scene, SceneComponent, ComponentProperties, Connection, ViewState, Room } from '@/shared/types';
 import type { ViewMode } from '@/shared/types/constants';
 import { generateId } from '@/shared/utils/id';
+import { getDefaultSpatialForAsset } from '@/shared/utils/spatialDefaults';
 import { getAssetById } from '@/features/component-library/assets-data';
 
 // ==================== Default Values ====================
@@ -146,6 +147,7 @@ export const useSceneStore = create<SceneState>()(temporal((set, get) => ({
       locked: false,
       opacity: 1,
       groupId: null,
+      spatial: getDefaultSpatialForAsset(asset),
     };
 
     set((state) => ({

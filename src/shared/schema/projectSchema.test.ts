@@ -147,4 +147,47 @@ describe('validateProjectFile', () => {
       expect(result.error).toContain('room');
     }
   });
+
+  // ── Spatial field (optional, backward-compatible) ──
+
+  it('accepts components without spatial field (backward compat)', () => {
+    const project = structuredClone(MINIMAL_PROJECT);
+    (project.schemes[0].scene as any).components = [
+      { id: 'c1', assetId: 'a1', position: { x: 0, y: 0 } },
+    ];
+    const result = validateProjectFile(project);
+    expect(result.success).toBe(true);
+    if (result.success) {
+      const comp = result.data.schemes[0].scene.components[0];
+      expect(comp.spatial).toBeUndefined();
+    }
+  });
+
+  it('accepts components with spatial field populated', () => {
+    const project = structuredClone(MINIMAL_PROJECT);
+    (project.schemes[0].scene as any).components = [
+      {
+        id: 'c1', assetId: 'a1', position: { x: 0, y: 0 },
+        spatial: { mountType: 'wall', objectHeight: 500, z: 1.5, layer: 'ceiling-dev' },
+      },
+    ];
+    const result = validateProjectFile(project);
+    expect(result.success).toBe(true);
+    if (result.success) {
+      const sp = result.data.schemes[0].scene.components[0].spatial!;
+      expect(sp.mountType).toBe('wall');
+      expect(sp.objectHeight).toBe(500);
+      expect(sp.z).toBe(1.5);
+      expect(sp.layer).toBe('ceiling-dev');
+    }
+  });
+
+  it('rejects invalid mountType values', () => {
+    const project = structuredClone(MINIMAL_PROJECT);
+    (project.schemes[0].scene as any).components = [
+      { id: 'c1', assetId: 'a1', position: { x: 0, y: 0 }, spatial: { mountType: 'hover' } },
+    ];
+    const result = validateProjectFile(project);
+    expect(result.success).toBe(false);
+  });
 });

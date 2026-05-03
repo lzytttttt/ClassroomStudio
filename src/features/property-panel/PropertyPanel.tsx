@@ -1,9 +1,9 @@
 import { useState } from 'react';
 import { useSceneStore } from '@/store/sceneStore';
 import { getAssetById } from '@/features/component-library/assets-data';
-import type { SceneComponent, DoorWindow } from '@/shared/types';
+import type { SceneComponent, DoorWindow, MountType } from '@/shared/types';
 import { CATEGORY_LABELS } from '@/shared/types/constants';
-import { Settings2, Package, Ruler, Plug, DollarSign, MessageSquare, Home, Palette, DoorOpen, Plus, Trash2 } from 'lucide-react';
+import { Settings2, Package, Ruler, Plug, DollarSign, MessageSquare, Home, Palette, DoorOpen, Plus, Trash2, Move3d } from 'lucide-react';
 import { generateId } from '@/shared/utils/id';
 
 export default function PropertyPanel() {
@@ -66,6 +66,56 @@ export default function PropertyPanel() {
           onChange={v => updateComponent(component.id, { position: { ...component.position, y: Number(v) } })} />
         <FieldRow label="旋转" value={Math.round(component.rotation)} suffix="°"
           onChange={v => updateComponent(component.id, { rotation: Number(v) })} />
+      </Section>
+
+      {/* Spatial */}
+      <Section icon={Move3d} title="空间">
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
+          <label style={{ fontSize: 12, color: 'var(--color-text-tertiary)', width: 36, flexShrink: 0 }}>安装</label>
+          <select
+            value={component.spatial?.mountType ?? 'floor'}
+            onChange={e => updateComponent(component.id, {
+              spatial: { ...component.spatial, mountType: e.target.value as MountType },
+            })}
+            className="input input-sm"
+            style={{ flex: 1 }}
+          >
+            <option value="floor">地面</option>
+            <option value="wall">壁挂</option>
+            <option value="ceiling">吊装</option>
+            <option value="desktop">桌面</option>
+            <option value="rack">机架</option>
+          </select>
+        </div>
+        <FieldRow label="离地" value={Math.round(component.elevation)} suffix="mm"
+          onChange={v => updateComponent(component.id, { elevation: Number(v) })} />
+        <FieldRow label="Z" value={component.spatial?.z ?? 0} suffix=""
+          onChange={v => updateComponent(component.id, {
+            spatial: { ...component.spatial, z: Number(v) },
+          })} />
+        <FieldRow label="深度" value={component.spatial?.depth ?? 0} suffix="mm"
+          onChange={v => updateComponent(component.id, {
+            spatial: { ...component.spatial, depth: Number(v) },
+          })} />
+        <FieldRow label="高度" value={component.spatial?.objectHeight ?? 0} suffix="mm"
+          onChange={v => updateComponent(component.id, {
+            spatial: { ...component.spatial, objectHeight: Number(v) },
+          })} />
+        <FieldText label="图层" value={component.spatial?.layer ?? ''}
+          onChange={v => updateComponent(component.id, {
+            spatial: { ...component.spatial, layer: v },
+          })} />
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
+          <label style={{ fontSize: 12, color: 'var(--color-text-tertiary)', width: 36, flexShrink: 0 }}>承载</label>
+          <input
+            type="checkbox"
+            checked={component.spatial?.supportsChildren ?? false}
+            onChange={e => updateComponent(component.id, {
+              spatial: { ...component.spatial, supportsChildren: e.target.checked },
+            })}
+          />
+          <span style={{ fontSize: 11, color: 'var(--color-text-tertiary)' }}>可放置子组件</span>
+        </div>
       </Section>
 
       {/* Basic Properties */}

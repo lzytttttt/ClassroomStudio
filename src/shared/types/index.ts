@@ -1,5 +1,20 @@
 import type { AssetCategory, ConnectionType, ExternalNodeType, ViewMode } from './constants';
 
+// ==================== 空间语义 ====================
+
+export type MountType = 'floor' | 'wall' | 'ceiling' | 'desktop' | 'rack';
+
+export interface ComponentSpatial {
+  z?: number;                // 堆叠/渲染精细层级（浮点，区别于顶层 zIndex 粗粒度排序）
+  elevation?: number;        // 离地高度 mm — 未来迁移预留，当前主字段为顶层 elevation
+  depth?: number;            // 2.5D 视觉深度 mm（覆盖 Asset.defaultSize.depth）
+  objectHeight?: number;     // 物体自身高度 mm（Z 轴尺寸，区别于 elevation 离地高度）
+  mountType?: MountType;     // 安装方式
+  layer?: string;            // 自定义图层标签
+  supportsChildren?: boolean; // 是否可承载子组件（如桌面、机架）
+  parentId?: string;         // 承载组件 ID（临时轻量字段，不替代未来 relations 模型）
+}
+
 // ==================== 项目层 ====================
 
 export interface Project {
@@ -84,6 +99,7 @@ export interface SceneComponent {
   opacity: number;
   groupId: string | null;
   topologyPosition?: { x: number; y: number };
+  spatial?: ComponentSpatial;
 }
 
 export interface ComponentProperties {
