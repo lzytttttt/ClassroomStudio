@@ -7,16 +7,19 @@ export class ClassRoomDB extends Dexie {
   constructor() {
     super('ClassRoomStudioDB');
     this.version(1).stores({
-      projects: 'id, name, updatedAt, createdAt'
+      projects: 'id, name, updatedAt, createdAt',
     });
   }
 }
 
 export const db = new ClassRoomDB();
 
+export function prepareProjectForSave(project: Project): Project {
+  return { ...project, updatedAt: new Date().toISOString() };
+}
+
 export async function saveProject(project: Project) {
-  const toSave = { ...project, updatedAt: new Date().toISOString() };
-  await db.projects.put(toSave);
+  await db.projects.put(prepareProjectForSave(project));
 }
 
 export async function loadProjects() {
