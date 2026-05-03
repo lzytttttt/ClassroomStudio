@@ -1,4 +1,4 @@
-# ClassRoom Studio 
+# ClassRoom Studio `v0.3.1`
 
 by：Lzytttttt
 
