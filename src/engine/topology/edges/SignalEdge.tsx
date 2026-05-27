@@ -21,7 +21,7 @@ export function SignalEdge({
   const bandwidth = data?.bandwidth as string;
   const lineStyle = data?.lineStyle as 'bezier' | 'step' | 'straight' || 'bezier';
 
-  let pathParams = {
+  const pathParams = {
     sourceX, sourceY, sourcePosition, targetX, targetY, targetPosition,
   };
 

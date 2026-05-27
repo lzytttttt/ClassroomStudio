@@ -21,7 +21,6 @@ export default function EditorPage() {
   const { scene, removeComponents, copySelected, pasteClipboard, selectAll, clearSelection, setScene, groupSelected, ungroupSelected } = useSceneStore();
   const { leftSidebarOpen, rightSidebarOpen } = useUIStore();
   const { currentProject, setCurrentProject, saveCurrentProject } = useProjectStore();
-  const { addToast } = useUIStore();
   const activeView = scene.viewState.activeView;
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number } | null>(null);
   const [saveStatus, setSaveStatus] = useState<'saved' | 'saving' | 'unsaved'>('saved');

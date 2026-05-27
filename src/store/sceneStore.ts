@@ -405,7 +405,7 @@ export const useSceneStore = create<SceneState>()(temporal((set, get) => ({
     return {
       scene: {
         ...state.scene,
-        components: state.scene.components.map((c, i) =>
+        components: state.scene.components.map((c, _i) =>
           ids.includes(c.id) ? { ...c, zIndex: maxZ + 1 + ids.indexOf(c.id) } : c
         ),
       },

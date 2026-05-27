@@ -77,4 +77,39 @@ describe('interactionStore', () => {
     useInteractionStore.getState().setComponentStatus('c2', 'offline');
     expect(JSON.stringify(scene)).toBe(sceneBefore);
   });
+
+  it('setActiveComponent 在有 relations 的场景中生成交互效果', () => {
+    const scene = makeScene({
+      relations: [
+        { id: 'r1', type: 'placed_on', sourceId: 'c2', targetId: 'c1' },
+      ],
+    });
+    useInteractionStore.getState().setActiveComponent('c1', scene);
+    const state = useInteractionStore.getState();
+    expect(state.activeComponentId).toBe('c1');
+    expect(state.activeEffects.length).toBeGreaterThan(0);
+    expect(state.activeEffects.some(e => e.type === 'highlight_components')).toBe(true);
+    expect(state.activeEffects.some(e => e.type === 'show_relation_badges')).toBe(true);
+  });
+
+  it('setComponentStatus 多次调用同一组件会覆盖状态', () => {
+    useInteractionStore.getState().setComponentStatus('c1', 'warning', 'low signal');
+    useInteractionStore.getState().setComponentStatus('c1', 'error', 'disconnected');
+    const state = useInteractionStore.getState();
+    expect(state.componentStatuses.get('c1')).toEqual({
+      componentId: 'c1',
+      status: 'error',
+      note: 'disconnected',
+    });
+    // Map should still only have one entry for c1
+    expect([...state.componentStatuses.keys()].filter(k => k === 'c1')).toHaveLength(1);
+  });
+
+  it('clearComponentStatus 对不存在的组件不抛出异常', () => {
+    expect(() => {
+      useInteractionStore.getState().clearComponentStatus('non-existent-id');
+    }).not.toThrow();
+    // componentStatuses should remain unchanged (empty)
+    expect(useInteractionStore.getState().componentStatuses.size).toBe(0);
+  });
 });

@@ -61,23 +61,23 @@ export function Asset25DNodeGroup({
   const shapes = [...geo.shapes].map(s => {
     let x = s.x * scaleX;
     let y = s.y * scaleY;
-    let z = s.z * scaleZ;
+    const z = s.z * scaleZ;
     let width = s.width * scaleX;
     let depth = s.depth * scaleY;
-    let height = s.height * scaleZ;
+    const height = s.height * scaleZ;
 
     const rotMod = (Math.round(rotationZ) % 360 + 360) % 360;
     if (rotMod === 90) {
-      let nx = -y; let ny = x;
+      const nx = -y; const ny = x;
       x = nx; y = ny;
-      let nw = depth; let nd = width;
+      const nw = depth; const nd = width;
       width = nw; depth = nd;
     } else if (rotMod === 180) {
       x = -x; y = -y;
     } else if (rotMod === 270) {
-      let nx = y; let ny = -x;
+      const nx = y; const ny = -x;
       x = nx; y = ny;
-      let nw = depth; let nd = width;
+      const nw = depth; const nd = width;
       width = nw; depth = nd;
     }
 

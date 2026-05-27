@@ -4,8 +4,9 @@ import {
   getRelationDrivenEffects,
   getCoverageEffectForComponent,
   resolveInteractionEffects,
+  getDefaultInteractionDefinitions,
 } from './interactionEngine';
-import type { Scene, SceneComponent, SceneRelation } from '@/shared/types';
+import type { Scene, SceneComponent, SceneRelation, Asset } from '@/shared/types';
 
 function makeScene(overrides: Partial<Scene> = {}): Scene {
   return {
@@ -138,5 +139,125 @@ describe('resolveInteractionEffects', () => {
     const before = JSON.stringify(scene);
     resolveInteractionEffects({ scene, componentId: 'c1', trigger: { type: 'select' } });
     expect(JSON.stringify(scene)).toBe(before);
+  });
+});
+
+describe('getDefaultInteractionDefinitions', () => {
+  it('返回 InteractionDefinition 数组，每项包含必要字段', () => {
+    const defs = getDefaultInteractionDefinitions();
+    expect(Array.isArray(defs)).toBe(true);
+    expect(defs.length).toBeGreaterThan(0);
+    for (const def of defs) {
+      expect(def.id).toBeTruthy();
+      expect(def.name).toBeTruthy();
+      expect(def.trigger).toBeDefined();
+      expect(def.trigger.type).toBeTruthy();
+      expect(Array.isArray(def.effects)).toBe(true);
+      expect(def.effects.length).toBeGreaterThan(0);
+      for (const eff of def.effects) {
+        expect(eff.type).toBeTruthy();
+      }
+    }
+  });
+
+  it('每次调用返回新数组（不共享引用）', () => {
+    const a = getDefaultInteractionDefinitions();
+    const b = getDefaultInteractionDefinitions();
+    expect(a).not.toBe(b);
+    expect(a).toEqual(b);
+  });
+});
+
+describe('resolveInteractionEffects with click trigger', () => {
+  it('click 触发器同样生成关系高亮与标记效果', () => {
+    const scene = makeScene({ relations: [rel1, rel2] });
+    const effects = resolveInteractionEffects({ scene, componentId: 'c1', trigger: { type: 'click' } });
+    expect(effects.length).toBeGreaterThan(0);
+    expect(effects.some(e => e.type === 'highlight_components')).toBe(true);
+    expect(effects.some(e => e.type === 'show_relation_badges')).toBe(true);
+  });
+
+  it('click 触发器包含覆盖范围效果', () => {
+    const scene = makeScene({ relations: [] });
+    const effects = resolveInteractionEffects({ scene, componentId: 'c4', trigger: { type: 'click' } });
+    const coverage = effects.find(e => e.type === 'show_coverage_area');
+    expect(coverage).toBeDefined();
+    expect(coverage!.payload).toMatchObject({ shape: 'circle', radius: 5000 });
+  });
+
+  it('click 触发器对无关系无覆盖组件返回空', () => {
+    const scene = makeScene();
+    const effects = resolveInteractionEffects({ scene, componentId: 'c1', trigger: { type: 'click' } });
+    expect(effects).toEqual([]);
+  });
+});
+
+describe('getCoverageEffectForComponent with asset parameter', () => {
+  const genericComp: SceneComponent = {
+    id: 'x1', assetId: 'a1', position: { x: 0, y: 0 }, rotation: 0,
+    scale: { x: 1, y: 1 }, elevation: 0, zIndex: 0, name: 'GenericDevice',
+    properties: { brand: '', model: '', interfaces: [], power: 0, price: 0, quantity: 1, remark: '', customFields: {} },
+    visible: true, locked: false, opacity: 1, groupId: null,
+  };
+
+  function makeAsset(overrides: Partial<Asset>): Asset {
+    return {
+      id: 'asset-1', name: 'Device', category: 'display' as Asset['category'],
+      subcategory: '', defaultProperties: {}, icon2d: '', color: '#000',
+      defaultSize: { width: 100, height: 100, depth: 50 }, isBuiltin: true, tags: [],
+      ...overrides,
+    };
+  }
+
+  it('通过 asset.icon2d 包含 wifi 匹配 AP 覆盖', () => {
+    const asset = makeAsset({ name: 'DeviceX', icon2d: 'icons/wifi-router.svg' });
+    const effect = getCoverageEffectForComponent(genericComp, asset);
+    expect(effect).not.toBeNull();
+    expect(effect!.type).toBe('show_coverage_area');
+    expect(effect!.payload).toMatchObject({ shape: 'circle', radius: 5000 });
+  });
+
+  it('通过 asset.icon2d 包含 camera 匹配摄像头覆盖', () => {
+    const asset = makeAsset({ name: 'DeviceY', icon2d: 'icons/camera-dome.svg' });
+    const effect = getCoverageEffectForComponent(genericComp, asset);
+    expect(effect).not.toBeNull();
+    expect(effect!.payload).toMatchObject({ shape: 'sector', radius: 8000, angle: 120 });
+  });
+
+  it('通过 asset.icon2d 包含 mic 匹配麦克风覆盖', () => {
+    const asset = makeAsset({ name: 'DeviceZ', icon2d: 'icons/mic-wireless.svg' });
+    const effect = getCoverageEffectForComponent(genericComp, asset);
+    expect(effect).not.toBeNull();
+    expect(effect!.payload).toMatchObject({ shape: 'circle', radius: 3000 });
+  });
+
+  it('asset.name 优先于 component.name 进行匹配', () => {
+    const comp: SceneComponent = { ...genericComp, name: '桌子' };
+    const asset = makeAsset({ name: 'AP-WiFi设备' });
+    const effect = getCoverageEffectForComponent(comp, asset);
+    expect(effect).not.toBeNull();
+    expect(effect!.payload).toMatchObject({ shape: 'circle', radius: 5000 });
+  });
+});
+
+describe('getCoverageEffectForComponent 不支持覆盖的资产类型', () => {
+  it('普通桌子组件返回 null', () => {
+    const comp: SceneComponent = { id: 'd1', assetId: 'a1', position: { x: 0, y: 0 }, rotation: 0, scale: { x: 1, y: 1 }, elevation: 0, zIndex: 0, name: '桌子', properties: { brand: '', model: '', interfaces: [], power: 0, price: 0, quantity: 1, remark: '', customFields: {} }, visible: true, locked: false, opacity: 1, groupId: null };
+    expect(getCoverageEffectForComponent(comp)).toBeNull();
+  });
+
+  it('显示器组件返回 null', () => {
+    const comp: SceneComponent = { id: 'mon1', assetId: 'a1', position: { x: 0, y: 0 }, rotation: 0, scale: { x: 1, y: 1 }, elevation: 0, zIndex: 0, name: '显示器', properties: { brand: '', model: '', interfaces: [], power: 0, price: 0, quantity: 1, remark: '', customFields: {} }, visible: true, locked: false, opacity: 1, groupId: null };
+    expect(getCoverageEffectForComponent(comp)).toBeNull();
+  });
+
+  it('投影仪组件返回 null', () => {
+    const comp: SceneComponent = { id: 'proj1', assetId: 'a1', position: { x: 0, y: 0 }, rotation: 0, scale: { x: 1, y: 1 }, elevation: 0, zIndex: 0, name: '投影仪', properties: { brand: '', model: '', interfaces: [], power: 0, price: 0, quantity: 1, remark: '', customFields: {} }, visible: true, locked: false, opacity: 1, groupId: null };
+    expect(getCoverageEffectForComponent(comp)).toBeNull();
+  });
+
+  it('椅子组件返回 null', () => {
+    const comp: SceneComponent = { id: 'ch1', assetId: 'a1', position: { x: 0, y: 0 }, rotation: 0, scale: { x: 1, y: 1 }, elevation: 0, zIndex: 0, name: '椅子', properties: { brand: '', model: '', interfaces: [], power: 0, price: 0, quantity: 1, remark: '', customFields: {} }, visible: true, locked: false, opacity: 1, groupId: null };
+    expect(getCoverageEffectForComponent(comp)).toBeNull();
   });
 });
